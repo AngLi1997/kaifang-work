@@ -1,15 +1,36 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+const isMac = process.platform === 'darwin'
+
+// 自绘标题栏：macOS 保留系统窗口按钮（隐藏标题栏），其他平台由渲染层绘制按钮
+function registerWindowControls(): void {
+  const windowOf = (event: Electron.IpcMainEvent): BrowserWindow | null =>
+    BrowserWindow.fromWebContents(event.sender)
+
+  ipcMain.on('window:minimize', (event) => windowOf(event)?.minimize())
+  ipcMain.on('window:toggle-maximize', (event) => {
+    const win = windowOf(event)
+    if (!win) return
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  })
+  ipcMain.on('window:close', (event) => windowOf(event)?.close())
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1180,
+    height: 760,
+    minWidth: 760,
+    minHeight: 560,
     show: false,
     autoHideMenuBar: true,
+    frame: isMac,
+    ...(isMac ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 14, y: 14 } } : {}),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -41,6 +62,8 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.kaifangwork.app')
+
+  registerWindowControls()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

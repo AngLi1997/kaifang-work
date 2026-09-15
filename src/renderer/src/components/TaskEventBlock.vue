@@ -21,10 +21,10 @@ function formatDuration(ms: number): string {
 }
 
 const toolTone = {
-  running: 'badge--run',
-  succeeded: 'badge--ok',
-  'needs-review': 'badge--warn',
-  failed: 'badge--err'
+  running: 'is-run',
+  succeeded: 'is-ok',
+  'needs-review': 'is-warn',
+  failed: 'is-err'
 } as const
 
 const toolText = {
@@ -38,7 +38,6 @@ const toolText = {
 <template>
   <!-- 用户目标 -->
   <article v-if="block.kind === 'user'" class="block block--user selectable">
-    <span class="block__label">目标</span>
     <p>{{ block.text }}</p>
   </article>
 
@@ -76,12 +75,16 @@ const toolText = {
     <header class="block__head">
       <AppIcon name="plug" :size="13" />
       <span class="mono">{{ block.tool }}</span>
-      <span class="badge" :class="block.source === 'plugin' ? 'badge--accent' : ''">
-        {{ block.source === 'plugin' ? `插件 ${block.plugin}` : '内置工具' }}
-      </span>
+      <span v-if="block.source === 'plugin'" class="mono">{{ block.plugin }}</span>
       <span class="spacer" />
-      <span v-if="block.durationMs" class="dim mono">{{ formatDuration(block.durationMs) }}</span>
-      <span class="badge" :class="toolTone[block.status]">{{ toolText[block.status] }}</span>
+      <span v-if="block.durationMs" class="block__meta mono">
+        <AppIcon name="clock" :size="12" />
+        {{ formatDuration(block.durationMs) }}
+      </span>
+      <span class="status" :class="toolTone[block.status]">
+        <span class="status-dot" />
+        {{ toolText[block.status] }}
+      </span>
     </header>
 
     <dl class="kv">
@@ -123,8 +126,6 @@ const toolText = {
     <header class="block__head">
       <AppIcon name="file" :size="13" />
       <span class="mono">{{ block.path }}</span>
-      <span class="spacer" />
-      <span class="badge badge--warn">已修改</span>
     </header>
     <pre class="diff mono selectable"><code><span
       v-for="(hunk, index) in block.hunks"
@@ -141,14 +142,11 @@ const toolText = {
       <AppIcon name="alert" :size="13" />
       <span>需要确认</span>
       <span class="spacer" />
-      <span
-        v-if="decision"
-        class="badge"
-        :class="decision === 'approved' ? 'badge--ok' : 'badge--err'"
-      >
+      <span v-if="decision" class="status" :class="decision === 'approved' ? 'is-ok' : 'is-err'">
+        <span class="status-dot" />
         {{ decision === 'approved' ? '已批准' : '已拒绝' }}
       </span>
-      <span v-else class="badge badge--warn">等待处理</span>
+      <span v-else class="status is-warn"><span class="status-dot" />等待处理</span>
     </header>
     <dl class="kv">
       <dt>原因</dt>
@@ -167,7 +165,6 @@ const toolText = {
         <AppIcon name="x" :size="12" />
         拒绝
       </button>
-      <span class="dim">决策会写入执行记录</span>
     </footer>
   </article>
 
@@ -190,7 +187,7 @@ const toolText = {
   <!-- 代码 -->
   <article v-else-if="block.kind === 'code'" class="block">
     <header class="block__head">
-      <span class="dim mono">{{ block.lang }}</span>
+      <span class="mono">{{ block.lang }}</span>
       <span class="spacer" />
       <button class="btn btn--ghost btn--sm" @click="copy(block.code)">
         <AppIcon :name="copied ? 'check' : 'copy'" :size="12" />
@@ -208,12 +205,12 @@ const toolText = {
     </header>
     <div class="stats">
       <div v-for="stat in block.stats" :key="stat.label" class="stat">
-        <span class="stat__label dim">{{ stat.label }}</span>
+        <span class="stat__label">{{ stat.label }}</span>
         <span class="stat__value">{{ stat.value }}</span>
       </div>
     </div>
     <div v-if="block.next.length" class="next">
-      <span class="dim">下一步</span>
+      <span class="stat__label">下一步</span>
       <ul>
         <li v-for="item in block.next" :key="item">{{ item }}</li>
       </ul>
@@ -241,13 +238,11 @@ const toolText = {
   margin-left: auto;
 }
 
-.block__label,
-.block--user .block__label {
-  color: var(--text-3);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+.block__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
 }
 
 .block--user p {
@@ -267,7 +262,7 @@ const toolText = {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.018);
+  background: var(--bg-elevated);
 }
 
 .block--confirm {
@@ -319,7 +314,7 @@ const toolText = {
 }
 
 .plan__step.is-todo {
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .plan__mark {
@@ -348,7 +343,7 @@ const toolText = {
 }
 
 .kv dt {
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .kv dd {
@@ -443,6 +438,7 @@ const toolText = {
 }
 
 .stat__label {
+  color: var(--text-2);
   font-size: 10.5px;
   letter-spacing: 0.04em;
 }

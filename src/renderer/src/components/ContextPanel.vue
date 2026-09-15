@@ -6,9 +6,9 @@ import type { Task } from '../data/mock'
 defineProps<{ task: Task; model: string; mode: string }>()
 
 const permissionTone: Record<string, string> = {
-  allowed: 'badge--ok',
-  ask: 'badge--warn',
-  denied: 'badge--err'
+  allowed: 'is-ok',
+  ask: 'is-warn',
+  denied: 'is-err'
 }
 
 const permissionText: Record<string, string> = {
@@ -24,7 +24,7 @@ const permissionText: Record<string, string> = {
       <section class="group">
         <header class="group__head">
           <span class="section-label">当前步骤</span>
-          <span class="dim mono">2 / 5</span>
+          <span class="group__meta mono">2 / 5</span>
         </header>
         <ol class="steps">
           <li v-for="step in steps" :key="step.label" class="step" :class="`is-${step.state}`">
@@ -41,7 +41,7 @@ const permissionText: Record<string, string> = {
         <div class="stats">
           <div v-for="stat in fileStats" :key="stat.label" class="stat">
             <span class="stat__value" :class="`is-${stat.tone}`">{{ stat.value }}</span>
-            <span class="dim stat__label">{{ stat.label }}</span>
+            <span class="stat__label">{{ stat.label }}</span>
           </div>
         </div>
       </section>
@@ -63,15 +63,18 @@ const permissionText: Record<string, string> = {
       <section class="group">
         <header class="group__head">
           <span class="section-label">工具权限</span>
-          <AppIcon name="shield" :size="12" class="dim" />
         </header>
         <ul class="perms">
           <li v-for="perm in permissions" :key="perm.name" class="perm">
+            <span
+              class="status"
+              :class="permissionTone[perm.state]"
+              :title="permissionText[perm.state]"
+            >
+              <span class="status-dot" />
+            </span>
             <span class="mono perm__name">{{ perm.name }}</span>
-            <span class="dim perm__scope">{{ perm.scope }}</span>
-            <span class="badge" :class="permissionTone[perm.state]">{{
-              permissionText[perm.state]
-            }}</span>
+            <span class="perm__scope">{{ perm.scope }}</span>
           </li>
         </ul>
       </section>
@@ -83,13 +86,13 @@ const permissionText: Record<string, string> = {
         <div class="last-tool">
           <div class="last-tool__row">
             <span class="mono">{{ lastToolCall.tool }}</span>
-            <span class="badge badge--accent">{{ lastToolCall.plugin }}</span>
+            <span class="mono">{{ lastToolCall.plugin }}</span>
           </div>
           <div class="last-tool__row">
-            <span class="dim">耗时</span>
+            <AppIcon name="clock" :size="12" />
             <span class="mono">612.4s</span>
-            <span class="dim">状态</span>
-            <span class="badge badge--run">执行中</span>
+            <span class="spacer" />
+            <span class="status is-run"><span class="status-dot" />执行中</span>
           </div>
         </div>
       </section>
@@ -144,6 +147,11 @@ const permissionText: Record<string, string> = {
   gap: 7px;
 }
 
+.group__meta {
+  color: var(--text-2);
+  font-size: 11px;
+}
+
 .group__head {
   display: flex;
   align-items: center;
@@ -161,7 +169,7 @@ const permissionText: Record<string, string> = {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 12.5px;
 }
 
@@ -217,10 +225,11 @@ const permissionText: Record<string, string> = {
 }
 
 .stat__value.is-dim {
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .stat__label {
+  color: var(--text-2);
   font-size: 10.5px;
   letter-spacing: 0.04em;
 }
@@ -233,7 +242,7 @@ const permissionText: Record<string, string> = {
 }
 
 .kv dt {
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .kv dd {
@@ -253,6 +262,10 @@ const permissionText: Record<string, string> = {
   font-size: 11.5px;
 }
 
+.spacer {
+  margin-left: auto;
+}
+
 .perm__name {
   flex: none;
 }
@@ -260,6 +273,7 @@ const permissionText: Record<string, string> = {
 .perm__scope {
   overflow: hidden;
   flex: 1;
+  color: var(--text-2);
   font-size: 10.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -279,6 +293,7 @@ const permissionText: Record<string, string> = {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-2);
 }
 
 .pending {

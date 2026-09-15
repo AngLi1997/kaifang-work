@@ -4,9 +4,11 @@ import AppSidebar from './components/AppSidebar.vue'
 import ContextPanel from './components/ContextPanel.vue'
 import SettingsView from './components/SettingsView.vue'
 import TaskView from './components/TaskView.vue'
+import TitleBar from './components/TitleBar.vue'
 import { tasks, workspaces } from './data/mock'
 
 const view = ref<'task' | 'settings'>('task')
+const settingsSection = ref('general')
 const workspaceId = ref(workspaces[0].id)
 const taskId = ref(tasks[0].id)
 const asideVisible = ref(true)
@@ -14,6 +16,9 @@ const model = ref(tasks[0].model)
 const mode = ref(tasks[0].mode)
 
 const task = computed(() => tasks.find((item) => item.id === taskId.value) ?? tasks[0])
+const workspaceName = computed(
+  () => workspaces.find((item) => item.id === workspaceId.value)?.name ?? workspaces[0].name
+)
 
 let draftSeq = 0
 
@@ -22,12 +27,17 @@ function selectTask(id: string): void {
   view.value = 'task'
 }
 
+function openSettings(section = 'general'): void {
+  settingsSection.value = section
+  view.value = 'settings'
+}
+
 function newTask(): void {
   draftSeq += 1
   const created = {
     id: `task-draft-${draftSeq}`,
     title: '新任务 · 等待描述治理目标',
-    workspace: workspaces.find((ws) => ws.id === workspaceId.value)?.name ?? workspaces[0].name,
+    workspace: workspaceName.value,
     status: 'Draft' as const,
     startedAt: '—',
     duration: '0s',
@@ -60,31 +70,38 @@ function submitTask(text: string): void {
 </script>
 
 <template>
-  <div class="app-layout" :class="{ 'is-aside-hidden': view === 'settings' || !asideVisible }">
-    <AppSidebar
-      :active-task-id="taskId"
-      :workspace-id="workspaceId"
-      :view="view"
-      @select-task="selectTask"
-      @select-workspace="workspaceId = $event"
-      @open-view="view = $event"
-      @new-task="newTask"
-    />
+  <div class="app-root">
+    <TitleBar :workspace="workspaceName" />
 
-    <TaskView
-      v-if="view === 'task'"
-      :task="task"
-      :aside-visible="asideVisible"
-      :model="model"
-      :mode="mode"
-      @submit="submitTask"
-      @toggle-aside="asideVisible = !asideVisible"
-      @update:model="model = $event"
-      @update:mode="mode = $event"
-    />
+    <div class="app-layout" :class="{ 'is-aside-hidden': view === 'settings' || !asideVisible }">
+      <AppSidebar
+        :active-task-id="taskId"
+        :view="view"
+        @select-task="selectTask"
+        @open-settings="openSettings"
+        @new-task="newTask"
+      />
 
-    <SettingsView v-else @close="view = 'task'" />
+      <TaskView
+        v-if="view === 'task'"
+        :task="task"
+        :aside-visible="asideVisible"
+        :model="model"
+        :mode="mode"
+        @submit="submitTask"
+        @toggle-aside="asideVisible = !asideVisible"
+        @update:model="model = $event"
+        @update:mode="mode = $event"
+      />
 
-    <ContextPanel v-if="view === 'task' && asideVisible" :task="task" :model="model" :mode="mode" />
+      <SettingsView v-else :initial-section="settingsSection" @close="view = 'task'" />
+
+      <ContextPanel
+        v-if="view === 'task' && asideVisible"
+        :task="task"
+        :model="model"
+        :mode="mode"
+      />
+    </div>
   </div>
 </template>

@@ -30,6 +30,16 @@ pnpm build:unpack     # 构建并打包未压缩的桌面应用
 
 遵循 Prettier 配置：使用 2 个空格缩进、LF 换行符，不使用分号。提交前执行 `pnpm exec prettier --write <files>` 和 `pnpm lint`。应用代码使用 TypeScript；Vue 单文件组件需要脚本时使用 `<script setup lang="ts">`；组件文件使用 PascalCase，变量和函数使用 camelCase。
 
+## 界面规范
+
+- 图标库以 [Lucide](https://lucide.dev/icons/) 为唯一基本来源，通过 `lucide-vue-next` 引入；不要手写 SVG path、不要引入第二套图标库、不要用 emoji 代替图标。
+- 渲染层通过 `src/renderer/src/components/AppIcon.vue` 统一访问图标：新增图标先到 lucide.dev 检索，再在 `AppIcon` 的映射表中按语义化名称登记，避免各组件各自直接 import。
+- 主题色由 `currentColor` 继承；默认 `size` 16、`stroke-width` 1.75，密集区域可使用 12–14。
+- 窗口控制按钮（最小化/最大化/关闭）属于平台窗口 chrome，保持自绘细线图标，不受图标库约束。
+- 界面不写解释性文案：不添加副标题、说明段落、字段提示和快捷键提示；文字只承载用户必须知道的信息，说明性内容放到文档里。
+- 状态优先用状态图标表达（`.status` / `.status-dot` 与 `is-run`、`is-ok`、`is-warn`、`is-err` 色调），不要用带底色的文字标签或徽标。
+- 克制使用灰色文字：主文案使用默认文字色，次要信息最多降到 `--text-2`，不使用最浅一级灰色承载正文。
+
 ## 测试规范
 
 当前未配置测试框架或覆盖率门槛。在引入测试框架前，所有改动都应通过 `pnpm lint`、`pnpm typecheck` 和 `pnpm build`；涉及界面的改动还应使用 `pnpm dev` 做冒烟验证。后续测试应使用清晰的命名，例如 `workspace-ipc.test.ts`，并覆盖 IPC 校验和失败路径。

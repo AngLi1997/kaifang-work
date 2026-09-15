@@ -20,11 +20,11 @@ const models = ['claude-sonnet-4.5', 'claude-haiku-4', 'gpt-5.1', 'deepseek-v3.2
 const modes = ['Agent 执行', '对话', '只读分析']
 
 const statusTone: Record<TaskStatus, string> = {
-  Draft: '',
-  Running: 'badge--run',
-  WaitingForConfirmation: 'badge--warn',
-  Succeeded: 'badge--ok',
-  Failed: 'badge--err'
+  Draft: 'is-draft',
+  Running: 'is-run',
+  WaitingForConfirmation: 'is-warn',
+  Succeeded: 'is-ok',
+  Failed: 'is-err'
 }
 
 const statusText: Record<TaskStatus, string> = {
@@ -53,25 +53,20 @@ function onKeydown(event: KeyboardEvent): void {
   }
   if (event.key === 'Escape') composer.value?.blur()
 }
-
-function focusComposer(): void {
-  composer.value?.focus()
-}
 </script>
 
 <template>
   <section class="pane pane--main">
     <header class="task-head">
       <div class="task-head__title">
-        <span class="dim task-head__crumb">{{ task.workspace }} / {{ task.id }}</span>
         <h2>{{ task.title }}</h2>
         <div class="task-head__meta">
-          <span class="badge" :class="statusTone[task.status]">
-            <span class="dot" />
+          <span class="status" :class="statusTone[task.status]">
+            <span class="status-dot" />
             {{ statusText[task.status] }}
           </span>
-          <span class="dim mono">{{ task.model }} · {{ task.mode }}</span>
-          <span class="dim mono">起始 {{ task.startedAt }} · 已运行 {{ task.duration }}</span>
+          <span class="mono">{{ task.model }}</span>
+          <span class="mono">{{ task.duration }}</span>
         </div>
       </div>
 
@@ -103,13 +98,6 @@ function focusComposer(): void {
     </header>
 
     <div class="scroll stream selectable">
-      <div v-if="!task.blocks.length" class="stream__empty">
-        <AppIcon name="sparkle" :size="15" />
-        <p>描述要处理的档案范围与治理目标，Agent 会先给出执行计划再开始处理。</p>
-        <span class="dim"
-          >例如：对 incoming/ 下的扫描件执行 OCR，并抽取题名、日期、责任者和档号。</span
-        >
-      </div>
       <TaskEventBlock v-for="block in task.blocks" :key="block.id" :block="block" />
       <div v-if="task.status === 'Running'" class="stream__pending">
         <span class="pulse" />
@@ -119,17 +107,13 @@ function focusComposer(): void {
 
     <footer class="composer">
       <div class="composer__context">
-        <span class="badge">
-          <AppIcon name="folder" :size="11" />
+        <span class="ctx">
+          <AppIcon name="folder" :size="12" />
           incoming/
         </span>
-        <span class="badge">
-          <AppIcon name="file" :size="11" />
-          附件 3
-        </span>
-        <span class="badge badge--accent">
-          <AppIcon name="shield" :size="11" />
-          workspace.write · 需确认
+        <span class="ctx"> <AppIcon name="clip" :size="12" />3 </span>
+        <span class="ctx status is-warn" title="workspace.write · 执行前确认">
+          <AppIcon name="shield" :size="13" />
         </span>
       </div>
 
@@ -177,11 +161,6 @@ function focusComposer(): void {
           </button>
         </div>
       </div>
-
-      <div class="composer__hint dim">
-        <button class="link" @click="focusComposer">Enter 提交</button>
-        <span>· Shift + Enter 换行 · ⌘/Ctrl + K 命令搜索</span>
-      </div>
     </footer>
   </section>
 </template>
@@ -202,11 +181,6 @@ function focusComposer(): void {
   gap: 5px;
 }
 
-.task-head__crumb {
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-}
-
 .task-head h2 {
   overflow: hidden;
   font-size: 14.5px;
@@ -218,7 +192,8 @@ function focusComposer(): void {
 .task-head__meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  color: var(--text-2);
   font-size: 11px;
 }
 
@@ -251,24 +226,6 @@ function focusComposer(): void {
   font-size: 12.5px;
 }
 
-.stream__empty {
-  display: flex;
-  max-width: 460px;
-  flex-direction: column;
-  gap: 6px;
-  padding: 28px 0;
-  color: var(--text-2);
-}
-
-.stream__empty p {
-  color: var(--text);
-  font-size: 13.5px;
-}
-
-.stream__empty span {
-  font-size: 11.5px;
-}
-
 .pulse {
   width: 7px;
   height: 7px;
@@ -299,7 +256,15 @@ function focusComposer(): void {
 .composer__context {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
+}
+
+.ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  font-size: 11.5px;
 }
 
 .composer__field {
@@ -340,22 +305,6 @@ function focusComposer(): void {
 .composer__select {
   max-width: 160px;
   height: 24px;
-}
-
-.composer__hint {
-  display: flex;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-2);
-  font-size: 11px;
-  text-decoration: underline dotted;
-  cursor: pointer;
 }
 
 .spacer {

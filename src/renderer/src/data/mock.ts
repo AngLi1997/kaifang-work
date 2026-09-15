@@ -298,16 +298,15 @@ export const pendingConfirmation = {
 }
 
 export type SettingItem =
-  | { id: string; type: 'switch'; label: string; hint?: string; value: boolean }
-  | { id: string; type: 'select'; label: string; hint?: string; value: string; options: string[] }
-  | { id: string; type: 'text'; label: string; hint?: string; value: string }
-  | { id: string; type: 'keybinding'; label: string; hint?: string; value: string }
-  | { id: string; type: 'action'; label: string; hint?: string; button: string; danger?: boolean }
+  | { id: string; type: 'switch'; label: string; value: boolean }
+  | { id: string; type: 'select'; label: string; value: string; options: string[] }
+  | { id: string; type: 'text'; label: string; value: string }
+  | { id: string; type: 'keybinding'; label: string; value: string }
+  | { id: string; type: 'action'; label: string; button: string; danger?: boolean }
 
 export type SettingsSection = {
   id: string
   label: string
-  description: string
   items: SettingItem[]
 }
 
@@ -315,13 +314,11 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'general',
     label: '常规',
-    description: '语言、默认工作空间、启动行为与确认策略',
     items: [
       {
         id: 'general.language',
         type: 'select',
         label: '界面语言',
-        hint: '切换后需要重新启动窗口生效',
         value: '简体中文',
         options: ['简体中文', 'English']
       },
@@ -329,7 +326,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'general.workspace',
         type: 'select',
         label: '默认工作空间',
-        hint: '新建任务时默认使用的工作空间',
         value: '市档案馆 2024 接收批次',
         options: ['市档案馆 2024 接收批次', '企业档案整理项目', '照片档案数字化']
       },
@@ -337,7 +333,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'general.confirm',
         type: 'select',
         label: '高风险操作确认',
-        hint: '覆盖、移动、删除以及外部系统写入的默认策略',
         value: '始终确认',
         options: ['始终确认', '仅覆盖与删除确认', '按插件默认']
       },
@@ -345,7 +340,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'general.restore',
         type: 'switch',
         label: '启动时恢复未完成任务',
-        hint: '检测到上次 Running 状态的会话时进入恢复流程',
         value: true
       }
     ]
@@ -353,14 +347,13 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'appearance',
     label: '外观',
-    description: '主题、字号、信息密度与侧栏显示',
     items: [
       {
         id: 'appearance.theme',
         type: 'select',
         label: '主题',
-        value: '深色',
-        options: ['深色', '浅色', '跟随系统']
+        value: '跟随系统',
+        options: ['跟随系统', '浅色', '深色']
       },
       {
         id: 'appearance.fontSize',
@@ -373,7 +366,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'appearance.density',
         type: 'select',
         label: '信息密度',
-        hint: '影响列表行高与内容区间距',
         value: '紧凑',
         options: ['紧凑', '标准', '宽松']
       },
@@ -384,7 +376,6 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'models',
     label: '模型',
-    description: '模型提供方、模型参数与凭证状态',
     items: [
       {
         id: 'models.provider',
@@ -410,14 +401,12 @@ export const settingsSections: SettingsSection[] = [
         id: 'models.context',
         type: 'text',
         label: '上下文长度上限',
-        hint: '超出后由 Agent 自动压缩工作空间上下文',
         value: '180000'
       },
       {
         id: 'models.credential',
         type: 'action',
         label: 'Anthropic API Key',
-        hint: 'sk-••••••••••••4f2a · 已存入系统钥匙串，应用内不展示明文',
         button: '重新授权'
       }
     ]
@@ -425,13 +414,11 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'agent',
     label: 'Agent',
-    description: '基础 Agent 指令、默认模式与工具批准策略',
     items: [
       {
         id: 'agent.instructions',
         type: 'text',
         label: '基础指令引用',
-        hint: '只承载通用协作方式，档案治理规则请通过插件工具提供',
         value: 'agents/default-archivist.md'
       },
       {
@@ -446,7 +433,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'agent.autoApprove',
         type: 'select',
         label: '自动批准策略',
-        hint: '只读工具默认自动执行',
         value: '只读工具自动批准',
         options: ['不自动批准', '只读工具自动批准', '按上次选择记住 15 分钟']
       }
@@ -455,7 +441,6 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'terminal',
     label: '终端',
-    description: 'Shell、工作目录、超时与命令确认',
     items: [
       { id: 'terminal.shell', type: 'text', label: 'Shell', value: '/bin/zsh' },
       { id: 'terminal.cwd', type: 'text', label: '工作目录', value: '工作空间根目录' },
@@ -464,7 +449,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'terminal.confirm',
         type: 'switch',
         label: '执行前确认命令',
-        hint: '仅对写入类命令生效',
         value: true
       }
     ]
@@ -472,7 +456,6 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'git',
     label: 'Git',
-    description: '分支信息、Diff 展示与提交前确认',
     items: [
       { id: 'git.enabled', type: 'switch', label: '在工作空间中展示 Git 状态', value: true },
       {
@@ -488,21 +471,18 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'integrations',
     label: '集成',
-    description: '外部服务、代理网络与企业系统连接',
     items: [
       { id: 'integrations.proxy', type: 'text', label: 'HTTP 代理', value: '' },
       {
         id: 'integrations.external',
         type: 'action',
         label: '档案业务系统连接器',
-        hint: '未连接 · 需要 external-write 授权',
         button: '配置连接'
       },
       {
         id: 'integrations.plugins',
         type: 'action',
         label: '插件市场与本地插件',
-        hint: '已安装 3 个插件，1 个待更新',
         button: '管理插件'
       }
     ]
@@ -510,7 +490,6 @@ export const settingsSections: SettingsSection[] = [
   {
     id: 'advanced',
     label: '高级',
-    description: '日志、调试与数据清理',
     items: [
       {
         id: 'advanced.logDir',
@@ -522,7 +501,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'advanced.debug',
         type: 'switch',
         label: '调试模式',
-        hint: '记录完整事件流，可能包含文件路径',
         value: false
       },
       {
@@ -535,7 +513,6 @@ export const settingsSections: SettingsSection[] = [
         id: 'advanced.clear',
         type: 'action',
         label: '清理缓存',
-        hint: '只清理模型缓存、MCP 缓存与过期临时文件，不影响对话与原始文件',
         button: '立即清理',
         danger: true
       }

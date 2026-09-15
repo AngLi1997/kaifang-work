@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
+import { setThemeByLabel, themeLabel, themeOptions } from '../theme'
 import { settingsSections } from '../data/mock'
 import type { SettingItem } from '../data/mock'
 
+const props = defineProps<{ initialSection: string }>()
+
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-const activeSection = ref(settingsSections[0].id)
+const activeSection = ref(props.initialSection)
 
 const values = reactive<Record<string, boolean | string>>({})
 for (const section of settingsSections) {
@@ -14,23 +17,22 @@ for (const section of settingsSections) {
     if (item.type !== 'action') values[item.id] = item.value
   }
 }
+values['appearance.theme'] = themeLabel()
+
+function selectValue(item: SettingItem, value: string): void {
+  values[item.id] = value
+  if (item.id === 'appearance.theme') setThemeByLabel(value)
+}
 
 function toggle(item: SettingItem): void {
   values[item.id] = !values[item.id]
-}
-
-function sectionCount(): number {
-  return settingsSections.length
 }
 </script>
 
 <template>
   <section class="pane pane--main settings">
     <header class="settings__head">
-      <div>
-        <h2>设置</h2>
-        <span class="dim">{{ sectionCount() }} 个分类 · 修改立即生效并写入本地配置</span>
-      </div>
+      <h2>设置</h2>
       <button class="btn btn--sm" @click="emit('close')">
         <AppIcon name="x" :size="12" />
         返回工作区
@@ -53,10 +55,7 @@ function sectionCount(): number {
       <div class="scroll settings__content">
         <template v-for="section in settingsSections" :key="section.id">
           <section v-show="section.id === activeSection" class="settings__section">
-            <header class="settings__section-head">
-              <h3>{{ section.label }}</h3>
-              <p class="dim">{{ section.description }}</p>
-            </header>
+            <h3 class="settings__section-title">{{ section.label }}</h3>
 
             <div
               v-for="item in section.items"
@@ -64,15 +63,7 @@ function sectionCount(): number {
               class="row"
               :class="{ 'row--danger': item.type === 'action' && item.danger }"
             >
-              <label class="row__label" :for="item.id">
-                <span>{{ item.label }}</span>
-                <span v-if="item.type !== 'action' && item.hint" class="dim row__hint">{{
-                  item.hint
-                }}</span>
-                <span v-else-if="item.type === 'action' && item.hint" class="dim row__hint">{{
-                  item.hint
-                }}</span>
-              </label>
+              <label class="row__label" :for="item.id">{{ item.label }}</label>
 
               <div class="row__control">
                 <button
@@ -90,9 +81,13 @@ function sectionCount(): number {
                   :id="item.id"
                   class="select row__select"
                   :value="values[item.id]"
-                  @change="values[item.id] = ($event.target as HTMLSelectElement).value"
+                  @change="selectValue(item, ($event.target as HTMLSelectElement).value)"
                 >
-                  <option v-for="option in item.options" :key="option" :value="option">
+                  <option
+                    v-for="option in item.id === 'appearance.theme' ? themeOptions : item.options"
+                    :key="option"
+                    :value="option"
+                  >
                     {{ option }}
                   </option>
                 </select>
@@ -139,10 +134,6 @@ function sectionCount(): number {
   font-weight: 600;
 }
 
-.settings__head span {
-  font-size: 11px;
-}
-
 .settings__body {
   display: grid;
   min-height: 0;
@@ -159,7 +150,7 @@ function sectionCount(): number {
 }
 
 .settings__content {
-  padding: 18px 22px 40px;
+  padding: 18px 22px 32px;
 }
 
 .settings__section {
@@ -168,22 +159,12 @@ function sectionCount(): number {
   max-width: 680px;
 }
 
-.settings__section-head {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.settings__section-title {
   padding-bottom: 12px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--line);
-}
-
-.settings__section-head h3 {
   font-size: 13px;
   font-weight: 600;
-}
-
-.settings__section-head p {
-  font-size: 11.5px;
 }
 
 .row {
@@ -204,15 +185,7 @@ function sectionCount(): number {
 }
 
 .row__label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   font-size: 12.5px;
-}
-
-.row__hint {
-  font-size: 11px;
-  line-height: 1.45;
 }
 
 .row__control {

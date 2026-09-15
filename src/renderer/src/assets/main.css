@@ -1,29 +1,44 @@
 @import './base.css';
 
 :root {
-  --bg: #0e0f11;
-  --bg-panel: #131417;
-  --bg-inset: #0b0c0e;
-  --bg-hover: rgba(255, 255, 255, 0.04);
-  --bg-active: rgba(255, 255, 255, 0.075);
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  color-scheme: light dark;
 
-  --text: #e4e6ea;
-  --text-2: #969ba3;
-  --text-3: #6b7078;
+  --bg: light-dark(#fafafb, #0e0f11);
+  --bg-panel: light-dark(#f1f2f4, #131417);
+  --bg-inset: light-dark(#ffffff, #0b0c0e);
+  --bg-elevated: light-dark(rgba(10, 12, 16, 0.022), rgba(255, 255, 255, 0.018));
+  --bg-hover: light-dark(rgba(10, 12, 16, 0.05), rgba(255, 255, 255, 0.04));
+  --bg-active: light-dark(rgba(10, 12, 16, 0.08), rgba(255, 255, 255, 0.075));
+  --line: light-dark(rgba(10, 12, 16, 0.1), rgba(255, 255, 255, 0.07));
+  --line-strong: light-dark(rgba(10, 12, 16, 0.18), rgba(255, 255, 255, 0.14));
 
-  --accent: #7c5cff;
-  --accent-soft: rgba(124, 92, 255, 0.14);
-  --ok: #5dbd8b;
-  --warn: #d8a657;
-  --err: #e0705f;
-  --info: #6ea8dc;
+  --text: light-dark(#1b1d21, #e4e6ea);
+  --text-2: light-dark(#5d636c, #969ba3);
+  --text-3: light-dark(#8b9199, #6b7078);
+
+  --accent: light-dark(#6a49f2, #7c5cff);
+  --accent-soft: light-dark(rgba(106, 73, 242, 0.12), rgba(124, 92, 255, 0.14));
+  --ok: light-dark(#2f9d6c, #5dbd8b);
+  --warn: light-dark(#a9721a, #d8a657);
+  --err: light-dark(#c9503c, #e0705f);
+  --info: light-dark(#3d7fb8, #6ea8dc);
+
+  --scroll-thumb: light-dark(rgba(10, 12, 16, 0.16), rgba(255, 255, 255, 0.1));
+  --scroll-thumb-hover: light-dark(rgba(10, 12, 16, 0.26), rgba(255, 255, 255, 0.18));
 
   --radius: 5px;
   --sidebar-w: 244px;
   --panel-w: 300px;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* 主题显式覆盖；未设置 data-theme 时跟随系统 (color-scheme: light dark) */
+:root[data-theme='light'] {
+  color-scheme: only light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: only dark;
 }
 
 html,
@@ -67,21 +82,28 @@ textarea {
 ::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scroll-thumb);
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--scroll-thumb-hover);
   background-clip: padding-box;
 }
 
 /* layout ------------------------------------------------------------------ */
 
-.app-layout {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--panel-w);
+.app-root {
+  display: flex;
   height: 100vh;
+  flex-direction: column;
+}
+
+.app-layout {
+  flex: 1;
+  display: grid;
+  min-height: 0;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--panel-w);
 }
 
 .app-layout.is-aside-hidden {
@@ -241,51 +263,45 @@ textarea {
   transform: translateX(13px);
 }
 
-.badge {
+.status {
   display: inline-flex;
-  height: 18px;
   align-items: center;
-  gap: 5px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: var(--bg-active);
-  color: var(--text-2);
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
+  gap: 6px;
+  font-size: 11.5px;
   white-space: nowrap;
 }
 
-.badge--ok {
-  color: var(--ok);
-  background: rgba(93, 189, 139, 0.13);
-}
-
-.badge--run {
-  color: var(--info);
-  background: rgba(110, 168, 220, 0.14);
-}
-
-.badge--warn {
-  color: var(--warn);
-  background: rgba(216, 166, 87, 0.14);
-}
-
-.badge--err {
-  color: var(--err);
-  background: rgba(224, 112, 95, 0.14);
-}
-
-.badge--accent {
-  color: #b3a0ff;
-  background: var(--accent-soft);
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
+.status-dot {
+  width: 7px;
+  height: 7px;
   flex: none;
   border-radius: 50%;
   background: currentColor;
+}
+
+.status.is-draft {
+  color: var(--text-3);
+}
+
+.status.is-draft .status-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.status.is-run {
+  color: var(--info);
+}
+
+.status.is-warn {
+  color: var(--warn);
+}
+
+.status.is-ok {
+  color: var(--ok);
+}
+
+.status.is-err {
+  color: var(--err);
 }
 
 .mono {
@@ -295,10 +311,6 @@ textarea {
 
 .muted {
   color: var(--text-2);
-}
-
-.dim {
-  color: var(--text-3);
 }
 
 .selectable {
@@ -312,7 +324,7 @@ textarea {
 
 .section-label {
   padding: 0 10px;
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.09em;
@@ -346,7 +358,7 @@ textarea {
 
 .nav-item__sub {
   overflow: hidden;
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
