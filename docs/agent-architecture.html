@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KaifangWork · Agent 架构图</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+
+        /* 与 src/renderer/src/assets/main.css 保持一致的设计令牌 */
+        --bg: light-dark(#f6f3ec, #14110e);
+        --bg-panel: light-dark(#efebe2, #1a1613);
+        --bg-inset: light-dark(#fffdf8, #100d0b);
+        --line: light-dark(rgba(48, 34, 22, 0.14), rgba(255, 240, 220, 0.09));
+        --line-strong: light-dark(rgba(48, 34, 22, 0.28), rgba(255, 240, 220, 0.2));
+        --text: light-dark(#1d1a16, #e8e2d8);
+        --accent: light-dark(#9e1f26, #c9505a);
+        --accent-soft: light-dark(rgba(158, 31, 38, 0.1), rgba(201, 80, 90, 0.16));
+        --ok: light-dark(#2f6b4a, #6bb98d);
+        --warn: light-dark(#8a6418, #d3a44f);
+        --info: light-dark(#2f5c85, #79aadd);
+        --radius: 2px;
+        --font-ui: 'Songti SC', SimSun, 'Noto Serif CJK SC', 'Source Han Serif SC', '宋体', serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+      }
+
+      body {
+        padding: 32px 24px 56px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 13.5px;
+        line-height: 1.7;
+      }
+
+      .board {
+        display: grid;
+        max-width: 1080px;
+        margin: 0 auto;
+        align-items: start;
+        gap: 0;
+        grid-template-columns: 96px minmax(0, 1fr);
+      }
+
+      /* 头部 ------------------------------------------------------------------ */
+
+      .head {
+        display: flex;
+        grid-column: 1 / -1;
+        align-items: flex-end;
+        gap: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line-strong);
+      }
+
+      .head h1 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .head__meta {
+        margin-left: auto;
+        color: var(--accent);
+        font-size: 11.5px;
+        letter-spacing: 0.04em;
+      }
+
+      .legend {
+        display: flex;
+        grid-column: 1 / -1;
+        gap: 18px;
+        padding: 10px 0 18px;
+        font-size: 11.5px;
+      }
+
+      .legend__item {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .swatch {
+        width: 22px;
+        height: 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+      }
+
+      .swatch.is-plan {
+        border-style: dashed;
+      }
+
+      /* 层级 ------------------------------------------------------------------ */
+
+      .band {
+        display: grid;
+        grid-column: 1 / -1;
+        align-items: start;
+        gap: 10px;
+        grid-template-columns: 96px minmax(0, 1fr);
+      }
+
+      .band__tag {
+        padding-top: 4px;
+        color: var(--accent);
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        line-height: 1.4;
+      }
+
+      .band__tag small {
+        display: block;
+        color: var(--text);
+        font-size: 10.5px;
+        font-weight: 400;
+        letter-spacing: 0;
+        opacity: 0.6;
+      }
+
+      .nodes {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+      }
+
+      .node {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        padding: 10px 12px 11px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        background: var(--bg-panel);
+      }
+
+      .node--wide {
+        grid-column: 1 / -1;
+      }
+
+      .node.is-plan {
+        border-style: dashed;
+        background: transparent;
+      }
+
+      .node.is-accent {
+        border-color: var(--accent);
+      }
+
+      .node__head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .node__dot {
+        width: 7px;
+        height: 7px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--ok);
+      }
+
+      .node.is-plan .node__dot {
+        background: transparent;
+        box-shadow: inset 0 0 0 1.5px var(--line-strong);
+      }
+
+      .node__head h3 {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .node__head .node__meta {
+        margin-left: auto;
+        color: var(--info);
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .node__list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-left: 15px;
+        font-size: 12px;
+        list-style: disc;
+      }
+
+      .node__list li::marker {
+        color: var(--line-strong);
+      }
+
+      .node__list li.is-off {
+        opacity: 0.55;
+      }
+
+      .node__foot {
+        margin-top: 1px;
+        color: var(--text);
+        font-size: 11px;
+        opacity: 0.6;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      code {
+        padding: 1px 5px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--bg-inset);
+        font-family: var(--font-ui);
+        font-size: 11.5px;
+      }
+
+      .chip {
+        padding: 2px 7px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--bg-inset);
+        color: var(--text);
+        font-size: 11px;
+        letter-spacing: 0.01em;
+      }
+
+      .chip.is-accent {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* 连接 ------------------------------------------------------------------ */
+
+      .flow {
+        display: flex;
+        grid-column: 2;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 3px 0;
+      }
+
+      .flow__line {
+        width: 1px;
+        height: 12px;
+        background: var(--line-strong);
+      }
+
+      .flow__label {
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .flow__label small {
+        margin-left: 6px;
+        color: var(--text);
+        font-weight: 400;
+        letter-spacing: 0;
+        opacity: 0.6;
+      }
+
+      .flow__arrow {
+        width: 0;
+        height: 0;
+        border-top: 7px solid var(--accent);
+        border-right: 5px solid transparent;
+        border-left: 5px solid transparent;
+      }
+
+      .flow--up .flow__arrow {
+        order: -1;
+        border-top: 0;
+        border-bottom: 7px solid var(--accent);
+      }
+
+      /* 调用链 ----------------------------------------------------------------- */
+
+      .chain {
+        display: grid;
+        grid-column: 1 / -1;
+        gap: 10px 28px;
+        margin-top: 28px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line-strong);
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+
+      .chain__col h3 {
+        padding-bottom: 6px;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+
+      .chain ol {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding-left: 20px;
+        font-size: 12.5px;
+      }
+
+      .chain ol li::marker {
+        color: var(--accent);
+      }
+
+      @media print {
+        body {
+          padding: 0;
+        }
+
+        .node,
+        .chain {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="board">
+      <header class="head">
+        <h1>KaifangWork · Agent 工作台架构</h1>
+        <span class="head__meta">src/main · src/preload · src/renderer</span>
+      </header>
+
+      <div class="legend">
+        <span class="legend__item"><i class="swatch"></i>已实现</span>
+        <span class="legend__item"><i class="swatch is-plan"></i>规划中</span>
+      </div>
+
+      <!-- 用户 ------------------------------------------------------------------ -->
+
+      <section class="band">
+        <div class="band__tag">用户</div>
+        <div class="nodes">
+          <article class="node">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>任务提出与复核</h3>
+            </header>
+            <ul class="node__list">
+              <li>用自然语言描述治理目标</li>
+              <li>确认高风险操作、复核结果与证据</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">界面交互</span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 渲染进程 --------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          渲染进程
+          <small>Vue 3</small>
+        </div>
+        <div class="nodes">
+          <article class="node node--wide">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>壳层 App.vue</h3>
+              <span class="node__meta">唯一状态持有者</span>
+            </header>
+            <div class="chips">
+              <span class="chip is-accent">view</span>
+              <span class="chip is-accent">taskId</span>
+              <span class="chip is-accent">workspaceId</span>
+              <span class="chip is-accent">asideVisible</span>
+              <span class="chip is-accent">model</span>
+              <span class="chip is-accent">mode</span>
+            </div>
+            <p class="node__foot">props 下发 / emit 回传；无 Router、无状态库</p>
+          </article>
+
+          <article class="node">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>界面组件</h3>
+            </header>
+            <div class="chips">
+              <span class="chip">AppSidebar</span>
+              <span class="chip">TitleBar</span>
+              <span class="chip">UserMenu</span>
+              <span class="chip">TaskView</span>
+              <span class="chip">TaskEventBlock</span>
+              <span class="chip">SettingsView</span>
+              <span class="chip">DirectoryView</span>
+              <span class="chip">AppSelect</span>
+              <span class="chip">AppIcon</span>
+            </div>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>事件流订阅</h3>
+            </header>
+            <ul class="node__list">
+              <li>订阅 <code>TaskEvent</code> 并映射为事件块</li>
+              <li>增量渲染，等待结束不刷新整屏</li>
+            </ul>
+          </article>
+
+          <article class="node">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>静态数据源</h3>
+              <span class="node__meta">当前</span>
+            </header>
+            <ul class="node__list">
+              <li><code>data/mock.ts</code>：Task / Block / 设置 / 目录</li>
+              <li>接入持久化后替换数据来源，组件不改</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">受控 IPC<small>preload · contextBridge 白名单</small></span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- preload -------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          preload
+          <small>隔离桥接</small>
+        </div>
+        <div class="nodes">
+          <article class="node">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>window.api.windowControls</h3>
+            </header>
+            <div class="chips">
+              <span class="chip">window:minimize</span>
+              <span class="chip">window:toggle-maximize</span>
+              <span class="chip">window:close</span>
+            </div>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>待开放能力</h3>
+              <span class="node__meta">只暴露最小接口</span>
+            </header>
+            <div class="chips">
+              <span class="chip">任务与事件订阅</span>
+              <span class="chip">工作空间文件</span>
+              <span class="chip">插件与权限</span>
+              <span class="chip">凭证状态（脱敏）</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">校验与编排<small>归属校验 · 参数校验 · 路径边界</small></span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 主进程 --------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          主进程
+          <small>Electron main</small>
+        </div>
+        <div class="nodes">
+          <article class="node">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>窗口与应用生命周期</h3>
+            </header>
+            <ul class="node__list">
+              <li>无边框单窗口 1180×760</li>
+              <li>窗口控制 IPC + 窗口归属校验</li>
+              <li>外部链接转系统浏览器</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>任务与事件编排</h3>
+            </header>
+            <ul class="node__list">
+              <li>任务生命周期：创建 → 暂停 / 继续 / 取消 / 恢复</li>
+              <li>状态转换可追踪、幂等</li>
+              <li>向渲染层转发增量事件</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>权限与审计</h3>
+            </header>
+            <ul class="node__list">
+              <li>工作空间范围与路径规范化</li>
+              <li>权限决策、确认、拒绝记录</li>
+              <li>错误归类与审计日志</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>存储服务</h3>
+            </header>
+            <ul class="node__list">
+              <li>SQLite / Filesystem / Keychain / Cache 统一入口</li>
+              <li>凭证只在此处读取，不下发渲染层</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>Sidecar 管理</h3>
+            </header>
+            <ul class="node__list">
+              <li>环境检查、启停、重启</li>
+              <li>进度 / stdout / stderr / 退出码可观测</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label"
+          >基础 Agent 会话<small>对话 · 上下文 · 工具调用 · Harness</small></span
+        >
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 基础 Agent ------------------------------------------------------------ -->
+
+      <section class="band">
+        <div class="band__tag">
+          基础 Agent
+          <small>Pi Agent SDK</small>
+        </div>
+        <div class="nodes">
+          <article class="node is-plan node--wide">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>通用 Agent 运行时</h3>
+              <span class="node__meta">不含行业规则</span>
+            </header>
+            <ul class="node__list">
+              <li>对话循环与多轮目标理解</li>
+              <li>上下文组装：任务指令、工作空间、附件引用、历史消息、工具结果</li>
+              <li>按工具描述选择插件工具、生成参数、处理结构化结果</li>
+              <li>Harness：运行上下文、事件流与生命周期协作</li>
+            </ul>
+            <p class="node__foot">不承载档案分类、字段定义、OCR 流程、业务审批规则与报告模板</p>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">
+          统一工具契约<small>inputSchema · permissions · sideEffects</small>
+        </span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 插件工具运行时 --------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          插件工具运行时
+          <small>plugin runtime</small>
+        </div>
+        <div class="nodes">
+          <article class="node is-plan node--wide">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>发现 · 校验 · 路由 · 隔离</h3>
+            </header>
+            <ul class="node__list">
+              <li>插件发现、清单与版本读取，注册工具</li>
+              <li>输入输出校验、权限与工作空间范围检查</li>
+              <li>把工具调用路由到对应插件</li>
+              <li>超时、取消、重试、隔离与错误映射</li>
+              <li>插件结果 → 统一任务事件与可展示结果</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">工具调用<small>结构化输入 / 输出 + 来源与证据</small></span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 插件工具 --------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          插件工具
+          <small>业务能力入口</small>
+        </div>
+        <div class="nodes">
+          <article class="node is-plan node--wide">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>档案治理与业务插件</h3>
+              <span class="node__meta">声明权限与副作用</span>
+            </header>
+            <div class="chips">
+              <span class="chip is-accent">archive.ocr</span>
+              <span class="chip is-accent">archive.classify</span>
+              <span class="chip is-accent">archive.extractMetadata</span>
+              <span class="chip is-accent">archive.validate</span>
+              <span class="chip is-accent">archive.generateReport</span>
+              <span class="chip is-accent">business.*</span>
+            </div>
+            <p class="node__foot">
+              返回状态、结构化数据、来源位置、警告与错误；不改对话循环、不绕过宿主权限
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">执行后端</span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 外部依赖 --------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          外部依赖
+          <small>进程 / 服务</small>
+        </div>
+        <div class="nodes">
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>模型提供方</h3>
+              <span class="node__meta">← 基础 Agent</span>
+            </header>
+            <div class="chips">
+              <span class="chip">Anthropic</span>
+              <span class="chip">OpenAI</span>
+              <span class="chip">DeepSeek</span>
+            </div>
+            <p class="node__foot">凭证经主进程从 Keychain 读取，不含明文日志</p>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>OCR Sidecar</h3>
+              <span class="node__meta">← archive.ocr</span>
+            </header>
+            <ul class="node__list">
+              <li>Python + OCRmyPDF，本机回环或 stdio</li>
+              <li>带版本号请求：<code>requestId</code> / <code>taskId</code></li>
+              <li>进度、取消、超时；输出先临时路径再原子替换</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>外部业务系统</h3>
+              <span class="node__meta">← business.*</span>
+            </header>
+            <ul class="node__list">
+              <li>企业档案系统、共享存储连接器</li>
+              <li>写入始终确认并记录审计</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow">
+        <span class="flow__line"></span>
+        <span class="flow__label">读写与落盘<small>数据边界分离</small></span>
+        <span class="flow__arrow"></span>
+      </div>
+
+      <!-- 存储层 --------------------------------------------------------------- -->
+
+      <section class="band">
+        <div class="band__tag">
+          存储层
+          <small>本地优先</small>
+        </div>
+        <div class="nodes">
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>SQLite</h3>
+              <span class="node__meta">结构化元数据</span>
+            </header>
+            <div class="chips">
+              <span class="chip">conversations</span>
+              <span class="chip">messages</span>
+              <span class="chip">sessions</span>
+              <span class="chip">agents</span>
+              <span class="chip">tool_calls</span>
+              <span class="chip">permissions</span>
+              <span class="chip">projects</span>
+              <span class="chip">settings</span>
+            </div>
+            <p class="node__foot">迁移版本管理 + 外键约束；不存大二进制与明文凭证</p>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>Filesystem</h3>
+              <span class="node__meta">文件本体</span>
+            </header>
+            <div class="chips">
+              <span class="chip">skills/</span>
+              <span class="chip">agents/</span>
+              <span class="chip">workspaces/</span>
+              <span class="chip">artifacts/</span>
+              <span class="chip">attachments/</span>
+            </div>
+            <p class="node__foot">写入统一经路径校验，先写临时文件再原子替换</p>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>OS Keychain</h3>
+              <span class="node__meta">仅此处</span>
+            </header>
+            <ul class="node__list">
+              <li>模型 API Key、OAuth Token</li>
+              <li>渲染层与插件只拿到脱敏连接状态</li>
+            </ul>
+          </article>
+
+          <article class="node is-plan">
+            <header class="node__head">
+              <span class="node__dot"></span>
+              <h3>Cache</h3>
+              <span class="node__meta">可重建</span>
+            </header>
+            <ul class="node__list">
+              <li>模型缓存、MCP 缓存、临时中间文件</li>
+              <li>可清理，不作为任何业务的唯一数据源</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <div class="flow flow--up">
+        <span class="flow__arrow"></span>
+        <span class="flow__label">
+          事件回路<small>TaskEvent → 事件块增量渲染 → 用户确认</small>
+        </span>
+        <span class="flow__line"></span>
+      </div>
+
+      <!-- 调用链 --------------------------------------------------------------- -->
+
+      <section class="chain">
+        <div class="chain__col">
+          <h3>一次任务的调用链</h3>
+          <ol>
+            <li>用户在输入区描述目标，壳层创建任务并收集工作空间与附件上下文</li>
+            <li>主进程启动基础 Agent 会话，写入 <code>sessions</code></li>
+            <li>基础 Agent 规划步骤，按工具描述选择插件工具</li>
+            <li>插件运行时校验版本、参数、权限与工作空间范围</li>
+            <li>插件执行领域逻辑，调用 Sidecar、工作空间文件或外部系统</li>
+            <li>结构化结果、来源与产物路径回写存储，文件落到 <code>artifacts/</code></li>
+            <li>执行事件持续回传渲染层，逐条增量渲染为事件块</li>
+            <li>高风险步骤进入待确认，批准或拒绝后继续</li>
+            <li>任务完成生成摘要：目标、范围、结果、失败项、下一步</li>
+          </ol>
+        </div>
+
+        <div class="chain__col">
+          <h3>分层约束</h3>
+          <ol>
+            <li>渲染层不直接访问 Node.js、文件系统与敏感系统 API</li>
+            <li>基础 Agent 只保留对话、上下文、工具调用与 Harness</li>
+            <li>行业规则只存在于插件工具，可独立发布、测试、授权</li>
+            <li>Sidecar 不暴露给基础 Agent，不决定任务流程</li>
+            <li>凭证只在主进程与 Keychain 之间流动</li>
+            <li>不可逆操作、批量修改与外部写入必须确认并留痕</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

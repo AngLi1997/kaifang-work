@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
+import AppSelect from './AppSelect.vue'
 import { setThemeByLabel, themeLabel, themeOptions } from '../theme'
-import { settingsSections } from '../data/mock'
-import type { SettingItem } from '../data/mock'
+import { settingsSections } from '../data/settings'
+import type { SettingItem } from '../data/types'
 
 const props = defineProps<{ initialSection: string }>()
 
@@ -76,25 +77,19 @@ function toggle(item: SettingItem): void {
                   @click="toggle(item)"
                 />
 
-                <select
+                <AppSelect
                   v-else-if="item.type === 'select'"
-                  :id="item.id"
-                  class="select row__select"
-                  :value="values[item.id]"
-                  @change="selectValue(item, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option
-                    v-for="option in item.id === 'appearance.theme' ? themeOptions : item.options"
-                    :key="option"
-                    :value="option"
-                  >
-                    {{ option }}
-                  </option>
-                </select>
+                  class="row__select"
+                  :label="item.label"
+                  :model-value="String(values[item.id])"
+                  :options="item.id === 'appearance.theme' ? themeOptions : item.options"
+                  @update:model-value="selectValue(item, $event)"
+                />
 
                 <input
                   v-else-if="item.type === 'text'"
                   :id="item.id"
+                  :aria-label="item.label"
                   class="input row__input"
                   :value="values[item.id]"
                   @input="values[item.id] = ($event.target as HTMLInputElement).value"
@@ -104,6 +99,7 @@ function toggle(item: SettingItem): void {
                   v-else-if="item.type === 'keybinding'"
                   :id="item.id"
                   class="input row__input mono"
+                  :aria-label="item.label"
                   :value="values[item.id]"
                   readonly
                 />

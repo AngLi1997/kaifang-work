@@ -4,7 +4,7 @@ import AppIcon from './AppIcon.vue'
 
 const emit = defineEmits<{ (e: 'open-settings', section: string): void }>()
 
-const user = { name: '梁一鸣', role: '档案治理专员', initials: '梁' }
+const user = { name: '李昂', account: 'liang', role: '档案治理专员', initials: '李' }
 
 const open = ref(false)
 const about = ref(false)
@@ -50,7 +50,7 @@ onBeforeUnmount(() => {
           <span class="user__avatar user__avatar--sm">{{ user.initials }}</span>
           <span class="user__head-text">
             <strong>{{ user.name }}</strong>
-            <small>{{ user.role }}</small>
+            <small>{{ user.account }} · {{ user.role }}</small>
           </span>
         </div>
         <div class="divider" />

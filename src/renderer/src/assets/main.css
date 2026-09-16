@@ -10,6 +10,7 @@
   --bg-elevated: light-dark(rgba(48, 34, 22, 0.02), rgba(255, 240, 220, 0.02));
   --bg-hover: light-dark(rgba(48, 34, 22, 0.06), rgba(255, 240, 220, 0.05));
   --bg-active: light-dark(rgba(158, 31, 38, 0.1), rgba(201, 80, 90, 0.16));
+  --bg-selected: light-dark(rgba(48, 34, 22, 0.11), rgba(255, 240, 220, 0.12));
   --line: light-dark(rgba(48, 34, 22, 0.14), rgba(255, 240, 220, 0.09));
   --line-strong: light-dark(rgba(48, 34, 22, 0.28), rgba(255, 240, 220, 0.2));
 
@@ -215,29 +216,6 @@ textarea {
   outline: none;
 }
 
-.select {
-  height: 28px;
-  padding: 0 24px 0 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background-color: var(--bg-inset);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23969ba3' stroke-width='1.4'><path d='M5 6.5L8 9.5l3-3'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 4px center;
-  color: var(--text);
-  font-size: 12px;
-  appearance: none;
-}
-
-.select--bare {
-  border-color: transparent;
-  background-color: transparent;
-}
-
-.select--bare:hover {
-  background-color: var(--bg-hover);
-}
-
 .switch {
   position: relative;
   width: 30px;
@@ -360,8 +338,7 @@ textarea {
 }
 
 .nav-item.is-active {
-  background: var(--bg-active);
-  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--bg-selected);
 }
 
 .nav-item__sub {

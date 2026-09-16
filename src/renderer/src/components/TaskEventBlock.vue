@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AppIcon from './AppIcon.vue'
-import type { Block } from '../data/mock'
+import type { Block } from '../data/types'
 
 defineProps<{ block: Block }>()
 

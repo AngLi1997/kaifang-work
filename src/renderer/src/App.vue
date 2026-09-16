@@ -1,33 +1,46 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
 import DirectoryView from './components/DirectoryView.vue'
 import SettingsView from './components/SettingsView.vue'
 import TaskView from './components/TaskView.vue'
-import { tasks, workspaces } from './data/mock'
+import type { DirectoryKind, DirectoryRow, Task, WorkspaceFile } from './data/types'
 
-type ViewId = 'task' | 'settings' | 'workspace' | 'talent' | 'library'
+type ViewId = 'task' | 'settings' | DirectoryKind
 
 const view = ref<ViewId>('task')
 const settingsSection = ref('general')
-const workspaceId = ref(workspaces[0].id)
-const taskId = ref(tasks[0].id)
+const currentWorkspaceId = ref('')
+const taskId = ref<string | null>(null)
 const asideVisible = ref(true)
-const model = ref(tasks[0].model)
-const mode = ref(tasks[0].mode)
+const model = ref('claude-sonnet-4.5')
+const mode = ref('Agent 执行')
+const draftInput = ref('')
+
+const tasks = reactive<Task[]>([])
+const workspaceFiles = reactive<WorkspaceFile[]>([])
+const directory = reactive<Record<DirectoryKind, DirectoryRow[]>>({
+  workspace: [],
+  talent: [],
+  library: []
+})
 
 const asideShown = computed(() => view.value === 'task' && asideVisible.value)
+const task = computed(() => tasks.find((item) => item.id === taskId.value) ?? null)
 
-const task = computed(() => tasks.find((item) => item.id === taskId.value) ?? tasks[0])
-const workspaceName = computed(
-  () => workspaces.find((item) => item.id === workspaceId.value)?.name ?? workspaces[0].name
-)
-
-let draftSeq = 0
+let taskSeq = 0
 
 function selectTask(id: string): void {
-  taskId.value = id
+  const selected = tasks.find((item) => item.id === id)
+  if (!selected) return
+  taskId.value = selected.id
+  currentWorkspaceId.value = selected.workspaceId
+  draftInput.value = selected.draftInput
   view.value = 'task'
+}
+
+function selectWorkspace(id: string): void {
+  currentWorkspaceId.value = id
 }
 
 function openSettings(section = 'general'): void {
@@ -35,40 +48,54 @@ function openSettings(section = 'general'): void {
   view.value = 'settings'
 }
 
-function newTask(): void {
-  draftSeq += 1
-  const created = {
-    id: `task-draft-${draftSeq}`,
-    title: '新任务 · 等待描述治理目标',
-    workspace: workspaceName.value,
-    status: 'Draft' as const,
-    startedAt: '—',
-    duration: '0s',
-    model: model.value,
-    mode: mode.value,
+function createDraftTask(): Task {
+  taskSeq += 1
+  const created: Task = {
+    id: `task-${Date.now()}-${taskSeq}`,
+    title: '新任务',
+    workspaceId: currentWorkspaceId.value,
+    status: 'Draft',
+    draftInput: '',
+    lastConversationAt: null,
     blocks: []
   }
   tasks.unshift(created)
-  selectTask(created.id)
+  return created
 }
 
-let demoNoticeShown = false
+function newTask(): void {
+  const existing = tasks.find(
+    (item) => item.status === 'Draft' && item.workspaceId === currentWorkspaceId.value
+  )
+  const next = existing ?? createDraftTask()
+  selectTask(next.id)
+}
 
-// 静态页面演示：提交只追加展示内容，不调用基础 Agent
+function updateDraftInput(value: string): void {
+  draftInput.value = value
+  if (task.value?.status === 'Draft') task.value.draftInput = value
+}
+
+function taskTitleFromInput(text: string): string {
+  const firstLine = text.split('\n')[0].trim()
+  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine
+}
+
 function submitTask(text: string): void {
-  const current = task.value
+  const current =
+    task.value ??
+    tasks.find(
+      (item) => item.status === 'Draft' && item.workspaceId === currentWorkspaceId.value
+    ) ??
+    createDraftTask()
+
   if (current.status === 'Draft') current.status = 'Running'
-  current.blocks.push({ id: `user-${current.blocks.length}-${Date.now()}`, kind: 'user', text })
-  if (!demoNoticeShown) {
-    demoNoticeShown = true
-    current.blocks.push({
-      id: 'demo-notice',
-      kind: 'notice',
-      level: 'info',
-      title: '静态页面演示',
-      text: '当前未接入 Pi Agent SDK，提交内容仅用于展示任务交互与状态呈现。'
-    })
-  }
+  if (current.title === '新任务') current.title = taskTitleFromInput(text)
+  current.draftInput = ''
+  current.lastConversationAt = Date.now()
+  current.blocks.push({ id: `user-${Date.now()}`, kind: 'user', text })
+  draftInput.value = ''
+  selectTask(current.id)
 }
 </script>
 
@@ -77,7 +104,10 @@ function submitTask(text: string): void {
     <div class="app-layout" :class="{ 'is-aside-hidden': !asideShown }">
       <AppSidebar
         :active-task-id="taskId"
+        :current-workspace-id="currentWorkspaceId"
         :view="view"
+        :tasks="tasks"
+        :workspace-files="workspaceFiles"
         @select-task="selectTask"
         @open-settings="openSettings"
         @new-task="newTask"
@@ -90,10 +120,12 @@ function submitTask(text: string): void {
         :aside-visible="asideVisible"
         :model="model"
         :mode="mode"
+        :draft-input="draftInput"
         @submit="submitTask"
         @toggle-aside="asideVisible = !asideVisible"
         @update:model="model = $event"
         @update:mode="mode = $event"
+        @update:draft-input="updateDraftInput"
       />
 
       <SettingsView
@@ -102,7 +134,13 @@ function submitTask(text: string): void {
         @close="view = 'task'"
       />
 
-      <DirectoryView v-else :kind="view" />
+      <DirectoryView
+        v-else
+        :kind="view"
+        :rows="directory[view]"
+        :active-workspace-id="currentWorkspaceId"
+        @select-workspace="selectWorkspace"
+      />
 
       <aside v-if="asideShown" class="pane pane--aside" />
     </div>
