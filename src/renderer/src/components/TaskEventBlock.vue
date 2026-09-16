@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import type { Block } from '../data/types'
+import { renderMarkdown } from '../utils/markdown'
 
 defineProps<{ block: Block }>()
 
@@ -41,10 +42,21 @@ const toolText = {
     <p>{{ block.text }}</p>
   </article>
 
-  <!-- 普通文本 -->
-  <article v-else-if="block.kind === 'text'" class="block text-body selectable">
-    {{ block.text }}
+  <!-- 思考过程 -->
+  <article v-else-if="block.kind === 'thinking'" class="block block--thinking">
+    <header class="block__head">
+      <AppIcon name="sparkle" :size="13" />
+      <span>思考过程</span>
+    </header>
+    <div class="markdown-body thinking-body selectable" :innerHTML="renderMarkdown(block.text)" />
   </article>
+
+  <!-- 普通文本 -->
+  <article
+    v-else-if="block.kind === 'text'"
+    class="block text-body markdown-body selectable"
+    :innerHTML="renderMarkdown(block.text)"
+  />
 
   <!-- 执行计划 -->
   <article v-else-if="block.kind === 'plan'" class="block">
@@ -252,7 +264,170 @@ const toolText = {
 
 .text-body {
   color: var(--text);
-  white-space: pre-wrap;
+}
+
+.block--thinking {
+  padding: 9px 12px 11px;
+  border-left: 2px solid var(--info);
+  background: var(--bg-elevated);
+}
+
+.block--thinking .block__head {
+  color: var(--info);
+}
+
+.thinking-body {
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.markdown-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.markdown-body :deep(p) {
+  margin: 0 0 10px;
+}
+
+.markdown-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin: 14px 0 6px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.markdown-body :deep(h1:first-child),
+.markdown-body :deep(h2:first-child),
+.markdown-body :deep(h3:first-child),
+.markdown-body :deep(h4:first-child) {
+  margin-top: 0;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 19px;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 17px;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 15px;
+}
+
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  font-size: 14px;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 10px;
+  padding-left: 21px;
+}
+
+.markdown-body :deep(ul) {
+  list-style: disc;
+}
+
+.markdown-body :deep(ol) {
+  list-style: decimal;
+}
+
+.markdown-body :deep(li)::marker {
+  color: var(--accent);
+}
+
+.markdown-body :deep(blockquote) {
+  margin: 8px 0 10px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-2);
+}
+
+.markdown-body :deep(strong) {
+  font-weight: 700;
+}
+
+.markdown-body :deep(a) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.markdown-body :deep(code) {
+  padding: 1px 4px;
+  border-radius: var(--radius);
+  background: var(--bg-active);
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.markdown-body :deep(.md-code) {
+  max-width: 100%;
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.65;
+  white-space: pre;
+}
+
+.markdown-body :deep(.md-code code) {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+}
+
+.markdown-body :deep(hr) {
+  margin: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.md-table-wrap {
+  max-width: 100%;
+  margin: 8px 0 10px;
+  overflow-x: auto;
+}
+
+.markdown-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-body :deep(th) {
+  background: var(--bg-elevated);
+  font-weight: 700;
 }
 
 .block--tool,

@@ -29,6 +29,7 @@
 - [组件与样式约定](#组件与样式约定)
 - [任务呈现模型](#任务呈现模型)
 - [设置页面](#设置页面)
+- [Pi Agent 集成](#pi-agent-集成)
 - [规划：数据与存储](#规划数据与存储)
 - [规划：基础 Agent 与插件工具](#规划基础-agent-与插件工具)
 - [规划：OCR 插件工具与 Sidecar](#规划ocr-插件工具与-sidecar)
@@ -39,17 +40,17 @@
 
 ## 项目状态
 
-| 模块            | 状态             | 说明                                                                                 |
-| --------------- | ---------------- | ------------------------------------------------------------------------------------ |
-| 工程与构建      | 已完成           | Electron 44 + Vue 3.5 + TypeScript 5.9 + electron-vite 5，pnpm 管理                  |
-| 桌面外壳        | 已完成           | 无边框窗口、自绘标题栏、窗口控制 IPC、浅色/深色主题                                  |
-| 工作台界面      | 已完成（空数据态） | 三栏布局、导航、任务执行区、设置页、目录页；领域数据由 `App.vue` 持有                 |
-| 任务事件块      | 已完成（渲染层） | `TaskEventBlock.vue` 渲染 9 类事件块，尚未接入真实事件流                             |
-| 基础 Agent 集成 | 规划中           | 接入 Pi Agent SDK 的对话、上下文、工具调用和 Harness                                 |
-| 插件工具运行时  | 规划中           | 插件发现、注册、鉴权、调用与隔离                                                     |
-| OCR / Sidecar   | 规划中           | Python + OCRmyPDF，由 OCR 插件工具封装                                               |
-| 结构化存储      | 规划中           | SQLite + Filesystem + OS Keychain + Cache                                            |
-| 测试套件        | 未配置           | 当前以 `pnpm lint`、`pnpm typecheck`、`pnpm build` 为门槛                            |
+| 模块            | 状态                 | 说明                                                                            |
+| --------------- | -------------------- | ------------------------------------------------------------------------------- |
+| 工程与构建      | 已完成               | Electron 44 + Vue 3.5 + TypeScript 5.9 + electron-vite 5，pnpm 管理             |
+| 桌面外壳        | 已完成               | 无边框窗口、自绘标题栏、窗口控制 IPC、浅色/深色主题                             |
+| 工作台界面      | 已完成（空数据态）   | 三栏布局、导航、任务执行区、设置页、目录页；领域数据由 `App.vue` 持有           |
+| 任务事件块      | 已完成（基础事件流） | `TaskEventBlock.vue` 渲染任务消息、工具调用、完成与错误等 Pi 事件               |
+| 基础 Agent 集成 | 已完成（基础对话）   | vendor 固定 Pi 源码版本，主进程通过 PiAgent SDK 驱动 Agent 循环，设置页支持模型与 API Key 配置 |
+| 插件工具运行时  | 规划中               | 插件发现、注册、鉴权、调用与隔离                                                |
+| OCR / Sidecar   | 规划中               | Python + OCRmyPDF，由 OCR 插件工具封装                                          |
+| 结构化存储      | 规划中               | SQLite + Filesystem + OS Keychain + Cache                                       |
+| 测试套件        | 未配置               | 当前以 `pnpm lint`、`pnpm typecheck`、`pnpm build` 为门槛                       |
 
 文中标注「规划」的部分代表尚未落地为代码；只有代码里存在的能力才视为已实现。
 
@@ -75,10 +76,14 @@ pnpm format           # Prettier 全量格式化
 ```text
 .
 ├── src/
-│   ├── main/index.ts              # 主进程：窗口、生命周期、窗口控制 IPC
+│   ├── main/index.ts              # 主进程：窗口、生命周期、窗口与 Agent IPC
+│   ├── main/agent-service.ts      # Agent 会话生命周期与 Pi 事件映射
+│   ├── main/model-config.ts       # 模型配置与安全存储
+│   ├── main/pi-sdk.ts             # PiAgent SDK 运行时加载与类型边界
 │   ├── preload/
 │   │   ├── index.ts               # contextBridge：window.electron + window.api
 │   │   └── index.d.ts             # 渲染层 IPC 类型声明
+│   ├── shared/agent.ts            # 主进程 / preload / 渲染层共享类型
 │   └── renderer/
 │       ├── index.html
 │       └── src/
@@ -91,7 +96,9 @@ pnpm format           # Prettier 全量格式化
 │           └── assets/
 │               ├── base.css       # 基础重置与字体
 │               └── main.css       # 设计令牌、布局、原子类
-├── resources/                     # 运行时资源（应用图标）
+├── resources/                     # 运行时资源（应用图标、构建后的 Pi bundle）
+├── vendor/pi/                     # Pi 上游源码（git subtree）
+├── scripts/build-pi.mjs           # 构建并整理 PiAgent SDK 运行时资源
 ├── build/                         # 打包资源（图标、entitlements）
 ├── electron.vite.config.ts        # 三段构建配置 + @renderer 别名
 ├── electron-builder.yml           # 打包配置
@@ -118,12 +125,20 @@ pnpm format           # Prettier 全量格式化
 - Windows / Linux：自绘最小化、最大化/还原、关闭按钮，右侧对齐。
 - 整条标题栏 `-webkit-app-region: drag`，可交互元素显式 `no-drag`。
 
-IPC 白名单目前只有窗口控制，通过 preload 暴露：
+IPC 白名单通过 preload 暴露窗口控制、模型配置和 Agent 会话能力：
 
 ```ts
 window.api.windowControls.minimize() // window:minimize
 window.api.windowControls.toggleMaximize() // window:toggle-maximize
 window.api.windowControls.close() // window:close
+window.api.appState.load() // app-state:load
+window.api.appState.save(state) // app-state:save
+window.api.agent.getConfig() // agent:get-config
+window.api.agent.saveConfig(input) // agent:save-config
+window.api.agent.getModels() // agent:get-models
+window.api.agent.start(input) // agent:start
+window.api.agent.prompt(taskId, message) // agent:prompt
+window.api.agent.onEvent(listener) // agent:event
 window.electron // @electron-toolkit/preload 提供的只读 API
 ```
 
@@ -151,7 +166,7 @@ window.electron // @electron-toolkit/preload 提供的只读 API
 | `AppIcon.vue`        | 渲染层唯一的图标入口，语义名 → Lucide 组件映射                                         |
 | `AppSelect.vue`      | 自绘下拉：`Teleport` 到 body，按触发器测量定位（空间不足时上翻、右对齐），支持键盘导航 |
 | `TitleBar.vue`       | 自绘窗口 chrome 与窗口控制调用                                                         |
-| `AppSidebar.vue`     | 左侧导航：品牌、新建任务、功能菜单、任务 / 工作空间文件分组与搜索                     |
+| `AppSidebar.vue`     | 左侧导航：品牌、新建任务、功能菜单、任务 / 工作空间分组与搜索                          |
 | `UserMenu.vue`       | 左侧导航底部账号入口，菜单向上弹出（设置 / 账号 / 关于）                               |
 | `TaskView.vue`       | 中央任务执行区：任务头部、事件流、底部输入区                                           |
 | `TaskEventBlock.vue` | 单个执行事件块的渲染，覆盖 9 类 block                                                  |
@@ -329,18 +344,24 @@ Agent 过程以块序列呈现，类型定义在 `data/types.ts`，渲染在 `Ta
 
 Desktop Preference 风格：左侧分类导航，右侧连续设置行。控件类型为 `switch`、`select`、`text`、`keybinding`、`action`，行采用 `label + 控件` 两列栅格，默认用分隔线分组，只有高风险操作行才使用危险色边框。
 
-| 分类  | 内容                                                             |
-| ----- | ---------------------------------------------------------------- |
-| 常规  | 界面语言、高风险操作确认策略、启动时恢复未完成任务               |
-| 外观  | 主题、字号、信息密度、右侧状态信息区、Markdown 表格等宽          |
-| 模型  | 提供方、默认模型、温度、上下文长度上限、凭证重新授权             |
-| Agent | 基础指令引用、默认模式、最大步骤数、自动批准策略                 |
-| 终端  | Shell、工作目录、命令超时、执行前确认                            |
-| Git   | 展示 Git 状态、Diff 方式、提交前确认                             |
-| 集成  | HTTP 代理、业务系统连接器、插件管理                              |
-| 高级  | 日志目录、调试模式、实验性功能、清理缓存                         |
+| 分类  | 内容                                                    |
+| ----- | ------------------------------------------------------- |
+| 常规  | 界面语言、高风险操作确认策略、启动时恢复未完成任务      |
+| 外观  | 主题、字号、信息密度、右侧状态信息区、Markdown 表格等宽 |
+| 模型  | 提供方、思考级别、API Key、自定义模型配置               |
+| Agent | 基础指令引用、默认模式、最大步骤数、自动批准策略        |
+| 终端  | Shell、工作目录、命令超时、执行前确认                   |
+| Git   | 展示 Git 状态、Diff 方式、提交前确认                    |
+| 集成  | HTTP 代理、业务系统连接器、插件管理                     |
+| 高级  | 日志目录、调试模式、实验性功能、清理缓存                |
 
 设置项定义集中在 `data/settings.ts` 的 `settingsSections`；接入持久化后，分类与项的名称保持稳定，值改由设置服务读写。不要把每一项设置都放进独立 Card。
+
+## Pi Agent 集成
+
+当前已落地 Pi 的源码 vendor、模型配置、可恢复的多轮对话和任务 / 工作空间状态持久化，具体更新方式见 [`docs/pi-integration.md`](docs/pi-integration.md)。Pi 的源码固定在 `pi-upstream.lock.json` 指定的 release/tag，应用构建时执行 `pnpm run pi:build`，生成的 `resources/pi` 不提交到仓库，而是在打包时作为额外资源放入应用。
+
+主进程直接调用 PiAgent SDK 的 `createAgentSession`，由 Pi 负责 Agent 循环、上下文持久化、重试、压缩、Skill / AGENTS.md 加载以及 read、bash、edit、write、grep、find、ls 等工具执行；档案治理能力后续继续通过宿主权限校验后的插件工具接入。API Key 仅在主进程读取并注入 Pi 的运行时凭据，设置页不回显明文。
 
 ## 规划：数据与存储
 
@@ -358,7 +379,7 @@ Electron App
 ├── SQLite       conversations / messages / sessions / agents
 │                tool_calls / permissions / projects / settings
 ├── Filesystem   skills/ agents/ workspaces/ artifacts/ attachments/
-├── OS Keychain  OpenAI / Anthropic / DeepSeek API Key、OAuth Tokens
+├── OS Keychain  OpenAI / Anthropic / 自定义模型 API Key
 └── Cache        model cache / MCP cache / temporary files
 ```
 
@@ -519,7 +540,7 @@ OCR 以插件工具形式接入，由插件调用独立的 Python OCRmyPDF Sidec
 ### 阶段一：桌面壳与基础工作台
 
 - [x] 初始化 Electron、Vue 3、TypeScript 与 electron-vite 工程。
-- [x] 主进程、渲染进程与受控 IPC（当前仅窗口控制）。
+- [x] 主进程、渲染进程与受控 IPC（窗口控制、模型配置、Agent SDK）。
 - [x] 三栏布局、导航、任务执行区、设置页、目录页（空数据态）。
 - [x] 自绘标题栏、窗口控制与浅色/深色主题（默认跟随系统）。
 - [ ] 建立统一的任务状态模型与事件模型，接入持久化数据流。
@@ -528,9 +549,9 @@ OCR 以插件工具形式接入，由插件调用独立的 Python OCRmyPDF Sidec
 
 ### 阶段二：Agent 执行闭环
 
-- [ ] 接入 Pi Agent SDK 的对话、上下文、工具调用与 Harness。
+- [x] 接入 Pi 源码构建产物的 SDK 对话循环、资源加载与模型清单。
 - [ ] 基础 Agent 仅通过统一工具契约调用能力，不内置档案治理逻辑。
-- [ ] 支持增量文本、工具调用、进度与错误事件。
+- [x] 支持增量文本、工具调用、完成与错误事件。
 - [ ] 支持任务暂停、继续、取消与重试。
 - [ ] 完成执行记录、右侧状态信息区与日志入口。
 

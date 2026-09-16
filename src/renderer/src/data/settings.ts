@@ -54,47 +54,14 @@ export const settingsSections: SettingsSection[] = [
         value: '紧凑',
         options: ['紧凑', '标准', '宽松']
       },
-      { id: 'appearance.aside', type: 'switch', label: '显示右侧状态信息区', value: true },
+      { id: 'appearance.aside', type: 'switch', label: '显示右侧状态信息区', value: false },
       { id: 'appearance.markdown', type: 'switch', label: 'Markdown 表格按等宽渲染', value: true }
     ]
   },
   {
     id: 'models',
     label: '模型',
-    items: [
-      {
-        id: 'models.provider',
-        type: 'select',
-        label: '模型提供方',
-        value: 'Anthropic',
-        options: ['Anthropic', 'OpenAI', 'DeepSeek']
-      },
-      {
-        id: 'models.model',
-        type: 'select',
-        label: '默认模型',
-        value: 'claude-sonnet-4.5',
-        options: ['claude-sonnet-4.5', 'claude-haiku-4', 'gpt-5.1', 'deepseek-v3.2']
-      },
-      {
-        id: 'models.temperature',
-        type: 'text',
-        label: '温度',
-        value: '0.2'
-      },
-      {
-        id: 'models.context',
-        type: 'text',
-        label: '上下文长度上限',
-        value: '180000'
-      },
-      {
-        id: 'models.credential',
-        type: 'action',
-        label: 'Anthropic API Key',
-        button: '重新授权'
-      }
-    ]
+    items: []
   },
   {
     id: 'agent',

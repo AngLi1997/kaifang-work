@@ -2,13 +2,25 @@
 import { reactive, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import AppSelect from './AppSelect.vue'
+import AgentResources from './AgentResources.vue'
+import CustomModelSettings from './CustomModelSettings.vue'
 import { setThemeByLabel, themeLabel, themeOptions } from '../theme'
 import { settingsSections } from '../data/settings'
 import type { SettingItem } from '../data/types'
+import type { AgentResources as AgentResourcesData, CustomModelConfig } from '../../../shared/agent'
 
-const props = defineProps<{ initialSection: string }>()
+const props = defineProps<{
+  initialSection: string
+  customModels: readonly CustomModelConfig[]
+  agentResources: AgentResourcesData
+  agentResourcesLoading: boolean
+}>()
 
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'custom-models', models: CustomModelConfig[]): void
+  (e: 'refresh-agent-resources'): void
+}>()
 
 const activeSection = ref(props.initialSection)
 
@@ -91,6 +103,7 @@ function toggle(item: SettingItem): void {
                   :id="item.id"
                   :aria-label="item.label"
                   class="input row__input"
+                  type="text"
                   :value="values[item.id]"
                   @input="values[item.id] = ($event.target as HTMLInputElement).value"
                 />
@@ -109,6 +122,17 @@ function toggle(item: SettingItem): void {
                 </button>
               </div>
             </div>
+            <CustomModelSettings
+              v-if="section.id === 'models'"
+              :models="customModels"
+              @update:models="emit('custom-models', $event)"
+            />
+            <AgentResources
+              v-if="section.id === 'agent'"
+              :resources="agentResources"
+              :loading="agentResourcesLoading"
+              @refresh="emit('refresh-agent-resources')"
+            />
           </section>
         </template>
       </div>

@@ -6,6 +6,10 @@ export default defineConfig({
   main: {},
   preload: {},
   renderer: {
+    server: {
+      port: 5173,
+      strictPort: false
+    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src')

@@ -5,12 +5,27 @@ directories:
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!vendor/pi/**'
+  - '!resources/pi/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+extraResources:
+  - from: resources/pi
+    to: pi
+    filter:
+      - '**/*'
+  - from: resources/pi/node_modules
+    to: pi/node_modules
+    filter:
+      - '**/*'
+  - from: resources/pi/node_modules/@earendil-works/chord
+    to: pi/node_modules/@earendil-works/chord
+    filter:
+      - '**/*'
 win:
   executableName: KaifangWork
 nsis:

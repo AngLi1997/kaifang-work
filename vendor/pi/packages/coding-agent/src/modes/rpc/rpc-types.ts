@@ -71,7 +71,10 @@ export type RpcCommand =
 	| { id?: string; type: "get_messages" }
 
 	// Commands (available for invocation via prompt)
-	| { id?: string; type: "get_commands" };
+	| { id?: string; type: "get_commands" }
+
+	// Loaded resources
+	| { id?: string; type: "get_resources" };
 
 // ============================================================================
 // RPC Slash Command (for get_commands response)
@@ -87,6 +90,14 @@ export interface RpcSlashCommand {
 	source: "extension" | "prompt" | "skill";
 	/** Source metadata for the owning resource */
 	sourceInfo: SourceInfo;
+}
+
+export interface RpcAgentResources {
+	prompts: Array<{ name: string; description: string; path: string }>;
+	skills: Array<{ name: string; description: string; path: string }>;
+	contextFiles: string[];
+	builtinTools: Array<{ name: string; description: string; source: string; path: string }>;
+	tools: Array<{ name: string; description: string; source: string; path: string }>;
 }
 
 // ============================================================================
@@ -233,6 +244,13 @@ export type RpcResponse =
 			command: "get_commands";
 			success: true;
 			data: { commands: RpcSlashCommand[] };
+	  }
+	| {
+			id?: string;
+			type: "response";
+			command: "get_resources";
+			success: true;
+			data: RpcAgentResources;
 	  }
 
 	// Error response (any command can fail)

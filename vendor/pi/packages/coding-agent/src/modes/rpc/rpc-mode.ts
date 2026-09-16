@@ -34,6 +34,7 @@ import type {
 	RpcExtensionUIRequest,
 	RpcExtensionUIResponse,
 	RpcResponse,
+	RpcAgentResources,
 	RpcSessionState,
 	RpcSlashCommand,
 } from "./rpc-types.ts";
@@ -710,6 +711,45 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 				}
 
 				return success(id, "get_commands", { commands });
+			}
+
+			case "get_resources": {
+				const allTools = session.getAllTools();
+				const toolsByName = new Map(allTools.map((tool) => [tool.name, tool]));
+				const builtinToolNames = new Set(["read", "bash", "edit", "write"]);
+				const resources: RpcAgentResources = {
+					prompts: session.promptTemplates.map((prompt) => ({
+						name: prompt.name,
+						description: prompt.description,
+						path: prompt.filePath,
+					})),
+					skills: session.resourceLoader.getSkills().skills.map((skill) => ({
+						name: skill.name,
+						description: skill.description,
+						path: skill.filePath,
+					})),
+					contextFiles: session.resourceLoader.getAgentsFiles().agentsFiles.map(({ path }) => path),
+					builtinTools: session
+						.getActiveToolNames()
+						.filter((name) => builtinToolNames.has(name))
+						.map((name) => toolsByName.get(name))
+						.filter((tool): tool is (typeof allTools)[number] => tool !== undefined)
+						.map((tool) => ({
+							name: tool.name,
+							description: tool.description,
+							source: tool.sourceInfo.source,
+							path: tool.sourceInfo.path,
+						})),
+					tools: allTools
+						.filter((tool) => tool.sourceInfo.source !== "builtin")
+						.map((tool) => ({
+							name: tool.name,
+							description: tool.description,
+							source: tool.sourceInfo.source,
+							path: tool.sourceInfo.path,
+						})),
+				};
+				return success(id, "get_resources", resources);
 			}
 
 			default: {

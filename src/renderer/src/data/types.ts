@@ -1,6 +1,7 @@
 export type Block =
   | { id: string; kind: 'user'; text: string }
   | { id: string; kind: 'text'; text: string }
+  | { id: string; kind: 'thinking'; text: string }
   | { id: string; kind: 'plan'; title: string; steps: { label: string; state: StepState }[] }
   | {
       id: string
@@ -69,6 +70,7 @@ export type DirectoryRow = {
   meta: string
   icon: 'folder' | 'users' | 'sparkle' | 'library'
   workspaceId?: string
+  path?: string
 }
 
 export type SettingItem =

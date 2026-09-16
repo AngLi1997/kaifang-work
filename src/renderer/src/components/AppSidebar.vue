@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import TitleBar from './TitleBar.vue'
 import UserMenu from './UserMenu.vue'
-import type { DirectoryKind, Task, WorkspaceFile } from '../data/types'
+import type { DirectoryKind, DirectoryRow, Task } from '../data/types'
 
 type ViewId = 'task' | 'settings' | DirectoryKind
 
@@ -18,22 +18,30 @@ const props = defineProps<{
   currentWorkspaceId: string
   view: ViewId
   tasks: Task[]
-  workspaceFiles: WorkspaceFile[]
+  workspaces: DirectoryRow[]
 }>()
 
 const emit = defineEmits<{
   (e: 'select-task', id: string): void
   (e: 'open-settings', section: string): void
   (e: 'new-task'): void
+  (e: 'add-workspace'): void
+  (e: 'open-task-folder', id: string): void
+  (e: 'rename-task', id: string): void
+  (e: 'share-task', id: string): void
+  (e: 'delete-task', id: string): void
+  (e: 'select-workspace', id: string): void
   (e: 'open-view', view: DirectoryKind): void
 }>()
 
 const search = ref('')
 const tasksExpanded = ref(false)
-const filesExpanded = ref(false)
 const pageSize = 10
+const taskMenu = ref<{ taskId: string; top: number; left: number } | null>(null)
+const taskMenuElement = ref<HTMLElement | null>(null)
 
 const normalizedSearch = computed(() => search.value.trim().toLocaleLowerCase())
+const taskCount = computed(() => props.tasks.length)
 
 const filteredTasks = computed(() => {
   if (!normalizedSearch.value) return props.tasks
@@ -42,23 +50,28 @@ const filteredTasks = computed(() => {
   )
 })
 
-const filteredFiles = computed(() => {
-  const workspaceFiles = props.currentWorkspaceId
-    ? props.workspaceFiles.filter((file) => file.workspaceId === props.currentWorkspaceId)
-    : props.workspaceFiles
-  if (!normalizedSearch.value) return workspaceFiles
-  return workspaceFiles.filter((file) =>
-    file.name.toLocaleLowerCase().includes(normalizedSearch.value)
+const filteredWorkspaces = computed(() => {
+  if (!normalizedSearch.value) return props.workspaces
+  return props.workspaces.filter((workspace) =>
+    `${workspace.name} ${workspace.meta}`.toLocaleLowerCase().includes(normalizedSearch.value)
   )
 })
+
+const visibleWorkspaces = computed(() => filteredWorkspaces.value.slice(0, pageSize))
+const workspaceCount = computed(() => props.workspaces.length)
 
 const visibleTasks = computed(() =>
   tasksExpanded.value ? filteredTasks.value : filteredTasks.value.slice(0, pageSize)
 )
 
-const visibleFiles = computed(() =>
-  filesExpanded.value ? filteredFiles.value : filteredFiles.value.slice(0, pageSize)
+const taskMenuTask = computed(() =>
+  taskMenu.value ? props.tasks.find((task) => task.id === taskMenu.value?.taskId) : null
 )
+
+const taskMenuStyle = computed(() => {
+  if (!taskMenu.value) return undefined
+  return { top: `${taskMenu.value.top}px`, left: `${taskMenu.value.left}px` }
+})
 
 function formatRelativeTime(timestamp: number | null): string {
   if (!timestamp) return '—'
@@ -71,6 +84,68 @@ function formatRelativeTime(timestamp: number | null): string {
   if (elapsed < 30 * day) return `${Math.floor(elapsed / day)}天前`
   return `${Math.floor(elapsed / (30 * day))}个月前`
 }
+
+function selectTask(id: string): void {
+  taskMenu.value = null
+  emit('select-task', id)
+}
+
+function selectWorkspace(id: string): void {
+  emit('select-workspace', id)
+}
+
+function openTaskMenu(event: MouseEvent, task: Task): void {
+  const menuWidth = 164
+  const menuHeight = 172
+  taskMenu.value = {
+    taskId: task.id,
+    top: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
+    left: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8))
+  }
+}
+
+function runTaskAction(
+  action: 'open-task-folder' | 'rename-task' | 'share-task' | 'delete-task'
+): void {
+  const id = taskMenu.value?.taskId
+  taskMenu.value = null
+  if (!id) return
+  if (action === 'open-task-folder') emit('open-task-folder', id)
+  if (action === 'rename-task') emit('rename-task', id)
+  if (action === 'share-task') emit('share-task', id)
+  if (action === 'delete-task') emit('delete-task', id)
+}
+
+function closeTaskMenu(event: Event): void {
+  const target = event.target
+  if (target instanceof Node && taskMenuElement.value?.contains(target)) return
+  taskMenu.value = null
+}
+
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' || event.key === 'Esc' || event.code === 'Escape') {
+    event.preventDefault()
+    taskMenu.value = null
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', closeTaskMenu)
+  document.addEventListener('click', closeTaskMenu)
+  document.addEventListener('keydown', onKeydown, true)
+  window.addEventListener('keyup', onKeydown, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', closeTaskMenu)
+  document.removeEventListener('click', closeTaskMenu)
+  document.removeEventListener('keydown', onKeydown, true)
+  window.removeEventListener('keyup', onKeydown, true)
+})
+
+watch(taskMenu, (value) => {
+  if (value) void nextTick(() => taskMenuElement.value?.focus())
+})
 </script>
 
 <template>
@@ -105,12 +180,7 @@ function formatRelativeTime(timestamp: number | null): string {
     <nav class="scroll sidebar__body">
       <div class="sidebar__filter">
         <AppIcon name="search" :size="14" />
-        <input
-          v-model="search"
-          type="search"
-          aria-label="搜索任务和工作空间文件"
-          placeholder="搜索"
-        />
+        <input v-model="search" type="search" aria-label="搜索任务和工作空间" placeholder="搜索" />
         <button
           v-if="search"
           type="button"
@@ -124,20 +194,30 @@ function formatRelativeTime(timestamp: number | null): string {
 
       <section class="group">
         <header class="group__head">
-          <span class="section-label">任务(10)</span>
+          <span class="section-label">任务({{ taskCount }})</span>
         </header>
         <div class="group__items" :class="{ 'is-expanded': tasksExpanded }">
-          <button
+          <div
             v-for="task in visibleTasks"
             :key="task.id"
-            type="button"
             class="nav-item task-item"
             :class="{ 'is-active': view === 'task' && task.id === activeTaskId }"
-            @click="emit('select-task', task.id)"
+            @contextmenu.prevent="openTaskMenu($event, task)"
           >
-            <span class="task-item__title">{{ task.title }}</span>
-            <time class="task-item__time">{{ formatRelativeTime(task.lastConversationAt) }}</time>
-          </button>
+            <button type="button" class="task-item__main" @click="selectTask(task.id)">
+              <span class="task-item__title">{{ task.title }}</span>
+              <time class="task-item__time">{{ formatRelativeTime(task.lastConversationAt) }}</time>
+            </button>
+            <button
+              type="button"
+              class="task-item__menu btn btn--ghost btn--icon btn--sm"
+              :class="{ 'is-visible': taskMenu?.taskId === task.id }"
+              title="任务菜单"
+              @click.stop="openTaskMenu($event, task)"
+            >
+              <AppIcon name="more" :size="14" />
+            </button>
+          </div>
           <span v-if="!visibleTasks.length" class="group__empty">暂无任务</span>
         </div>
         <button
@@ -153,30 +233,30 @@ function formatRelativeTime(timestamp: number | null): string {
 
       <section class="group">
         <header class="group__head">
-          <span class="section-label">工作空间(10)</span>
-        </header>
-        <div class="group__items" :class="{ 'is-expanded': filesExpanded }">
+          <span class="section-label">工作空间({{ workspaceCount }})</span>
           <button
-            v-for="file in visibleFiles"
-            :key="file.id"
             type="button"
-            class="nav-item file-item"
+            class="btn btn--ghost btn--icon btn--sm"
+            title="添加工作空间"
+            @click="emit('add-workspace')"
           >
-            <AppIcon :name="file.kind === 'folder' ? 'folder' : 'file'" :size="14" />
-            <span class="nav-item__sub">{{ file.name }}</span>
-            <span class="nav-item__meta">{{ file.meta }}</span>
+            <AppIcon name="plus" :size="14" />
           </button>
-          <span v-if="!visibleFiles.length" class="group__empty">暂无文件</span>
+        </header>
+        <div class="group__items">
+          <button
+            v-for="workspace in visibleWorkspaces"
+            :key="workspace.id"
+            type="button"
+            class="nav-item file-item workspace-item"
+            :class="{ 'is-active': workspace.id === currentWorkspaceId }"
+            @click="selectWorkspace(workspace.id)"
+          >
+            <AppIcon name="folder" :size="14" />
+            <span class="nav-item__sub">{{ workspace.name }}</span>
+          </button>
+          <span v-if="!visibleWorkspaces.length" class="group__empty">暂无工作空间</span>
         </div>
-        <button
-          v-if="filteredFiles.length > pageSize"
-          type="button"
-          class="group__expand"
-          @click="filesExpanded = !filesExpanded"
-        >
-          <AppIcon name="chevron" :size="13" :class="{ 'is-rotated': filesExpanded }" />
-          {{ filesExpanded ? '收起' : '展开' }}
-        </button>
       </section>
     </nav>
 
@@ -184,6 +264,42 @@ function formatRelativeTime(timestamp: number | null): string {
       <UserMenu @open-settings="emit('open-settings', $event)" />
     </footer>
   </aside>
+
+  <Teleport to="body">
+    <button
+      v-if="taskMenu"
+      type="button"
+      class="task-menu-backdrop"
+      aria-label="关闭任务菜单"
+      @click="taskMenu = null"
+    />
+    <div
+      v-if="taskMenu && taskMenuTask"
+      ref="taskMenuElement"
+      class="task-menu"
+      role="menu"
+      tabindex="-1"
+      :style="taskMenuStyle"
+      @keydown.esc="taskMenu = null"
+    >
+      <button type="button" role="menuitem" @click="runTaskAction('open-task-folder')">
+        <AppIcon name="folder-open" :size="14" />
+        打开文件夹
+      </button>
+      <button type="button" role="menuitem" @click="runTaskAction('rename-task')">
+        <AppIcon name="pencil" :size="14" />
+        重命名
+      </button>
+      <button type="button" role="menuitem" @click="runTaskAction('share-task')">
+        <AppIcon name="share" :size="14" />
+        分享任务
+      </button>
+      <button type="button" role="menuitem" class="is-danger" @click="runTaskAction('delete-task')">
+        <AppIcon name="trash" :size="14" />
+        删除任务
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -312,7 +428,6 @@ function formatRelativeTime(timestamp: number | null): string {
 .sidebar__foot {
   flex: none;
   padding: 8px 10px 10px;
-  border-top: 1px solid var(--line);
 }
 
 .group {
@@ -326,6 +441,10 @@ function formatRelativeTime(timestamp: number | null): string {
   align-items: center;
   justify-content: space-between;
   padding: 0 2px 6px;
+}
+
+.group__head .btn {
+  margin-right: 2px;
 }
 
 .group__items {
@@ -382,5 +501,94 @@ function formatRelativeTime(timestamp: number | null): string {
   font-size: 10.5px;
   font-style: normal;
   font-weight: 400;
+}
+
+.task-item {
+  gap: 0;
+  padding: 0;
+}
+
+.task-item__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-item__main:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.task-item__menu {
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+  opacity: 0;
+}
+
+.task-item:hover .task-item__menu,
+.task-item__menu.is-visible,
+.task-item:focus-within .task-item__menu {
+  opacity: 1;
+}
+
+.task-menu {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  width: 164px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.task-menu-backdrop {
+  position: fixed;
+  z-index: 19;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.task-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-menu button:hover {
+  background: var(--bg-hover);
+}
+
+.task-menu button.is-danger {
+  color: var(--err);
 }
 </style>

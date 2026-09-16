@@ -8,15 +8,19 @@ import {
   Copy,
   FileText,
   Folder,
+  FolderOpen,
   History,
   Library,
+  MoreHorizontal,
   Paperclip,
   PanelRight,
   Pause,
+  Pencil,
   Play,
   Plug,
   Plus,
   RefreshCw,
+  Share2,
   Search,
   Shield,
   SlidersHorizontal,
@@ -24,6 +28,7 @@ import {
   Square,
   SquareTerminal,
   TriangleAlert,
+  Trash2,
   User,
   Users,
   X,
@@ -35,6 +40,7 @@ const icons = {
   plus: Plus,
   search: Search,
   folder: Folder,
+  'folder-open': FolderOpen,
   file: FileText,
   history: History,
   sliders: SlidersHorizontal,
@@ -57,7 +63,11 @@ const icons = {
   sparkle: Sparkles,
   shield: Shield,
   plug: Plug,
-  refresh: RefreshCw
+  refresh: RefreshCw,
+  trash: Trash2,
+  more: MoreHorizontal,
+  pencil: Pencil,
+  share: Share2
 } satisfies Record<string, LucideIcon>
 
 const props = defineProps<{ name: keyof typeof icons; size?: number }>()
