@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
-import ContextPanel from './components/ContextPanel.vue'
+import DirectoryView from './components/DirectoryView.vue'
 import SettingsView from './components/SettingsView.vue'
 import TaskView from './components/TaskView.vue'
-import TitleBar from './components/TitleBar.vue'
 import { tasks, workspaces } from './data/mock'
 
-const view = ref<'task' | 'settings'>('task')
+type ViewId = 'task' | 'settings' | 'workspace' | 'talent' | 'library'
+
+const view = ref<ViewId>('task')
 const settingsSection = ref('general')
 const workspaceId = ref(workspaces[0].id)
 const taskId = ref(tasks[0].id)
 const asideVisible = ref(true)
 const model = ref(tasks[0].model)
 const mode = ref(tasks[0].mode)
+
+const asideShown = computed(() => view.value === 'task' && asideVisible.value)
 
 const task = computed(() => tasks.find((item) => item.id === taskId.value) ?? tasks[0])
 const workspaceName = computed(
@@ -71,15 +74,14 @@ function submitTask(text: string): void {
 
 <template>
   <div class="app-root">
-    <TitleBar :workspace="workspaceName" />
-
-    <div class="app-layout" :class="{ 'is-aside-hidden': view === 'settings' || !asideVisible }">
+    <div class="app-layout" :class="{ 'is-aside-hidden': !asideShown }">
       <AppSidebar
         :active-task-id="taskId"
         :view="view"
         @select-task="selectTask"
         @open-settings="openSettings"
         @new-task="newTask"
+        @open-view="view = $event"
       />
 
       <TaskView
@@ -94,14 +96,15 @@ function submitTask(text: string): void {
         @update:mode="mode = $event"
       />
 
-      <SettingsView v-else :initial-section="settingsSection" @close="view = 'task'" />
-
-      <ContextPanel
-        v-if="view === 'task' && asideVisible"
-        :task="task"
-        :model="model"
-        :mode="mode"
+      <SettingsView
+        v-else-if="view === 'settings'"
+        :initial-section="settingsSection"
+        @close="view = 'task'"
       />
+
+      <DirectoryView v-else :kind="view" />
+
+      <aside v-if="asideShown" class="pane pane--aside" />
     </div>
   </div>
 </template>

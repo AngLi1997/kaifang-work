@@ -95,31 +95,30 @@ onBeforeUnmount(() => {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: 9px;
+  padding: 6px 8px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--text-2);
+  color: var(--text);
   cursor: pointer;
 }
 
 .user__entry:hover {
   background: var(--bg-hover);
-  color: var(--text);
 }
 
 .user__avatar {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   flex: none;
   place-items: center;
   border-radius: var(--radius);
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
 }
 
 .user__avatar--sm {
@@ -133,12 +132,13 @@ onBeforeUnmount(() => {
 }
 
 .user__name {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .user__menu {
   position: absolute;
-  left: 0;
+  left: -2px;
   bottom: calc(100% + 6px);
   display: flex;
   width: 208px;
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
   gap: 1px;
   padding: 6px;
   border: 1px solid var(--line-strong);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
@@ -165,12 +165,13 @@ onBeforeUnmount(() => {
 }
 
 .user__head-text strong {
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .user__head-text small {
   color: var(--text-2);
-  font-size: 10.5px;
+  font-size: 11.5px;
 }
 
 .user__menu .divider {
@@ -185,15 +186,15 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--text-2);
-  font-size: 12.5px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
 .user__item:hover {
   background: var(--bg-hover);
-  color: var(--text);
 }
 
 .user__about {

@@ -35,7 +35,7 @@ function toggle(item: SettingItem): void {
       <h2>设置</h2>
       <button class="btn btn--sm" @click="emit('close')">
         <AppIcon name="x" :size="12" />
-        返回工作区
+        返回
       </button>
     </header>
 
@@ -127,11 +127,17 @@ function toggle(item: SettingItem): void {
   justify-content: space-between;
   padding: 12px 18px;
   border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
 }
 
 .settings__head h2 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.settings__head .btn {
+  -webkit-app-region: no-drag;
 }
 
 .settings__body {
@@ -162,9 +168,10 @@ function toggle(item: SettingItem): void {
 .settings__section-title {
   padding-bottom: 12px;
   margin-bottom: 4px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-  font-weight: 600;
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .row {
@@ -185,7 +192,7 @@ function toggle(item: SettingItem): void {
 }
 
 .row__label {
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 
 .row__control {

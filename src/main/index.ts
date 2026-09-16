@@ -3,9 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-const isMac = process.platform === 'darwin'
-
-// 自绘标题栏：macOS 保留系统窗口按钮（隐藏标题栏），其他平台由渲染层绘制按钮
+// 无边框窗口的窗口控制由渲染层通过 preload 暴露的 IPC 调用。
 function registerWindowControls(): void {
   const windowOf = (event: Electron.IpcMainEvent): BrowserWindow | null =>
     BrowserWindow.fromWebContents(event.sender)
@@ -29,8 +27,7 @@ function createWindow(): void {
     minHeight: 560,
     show: false,
     autoHideMenuBar: true,
-    frame: isMac,
-    ...(isMac ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 14, y: 14 } } : {}),
+    frame: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

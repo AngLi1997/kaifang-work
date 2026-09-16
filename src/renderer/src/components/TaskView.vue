@@ -123,7 +123,7 @@ function onKeydown(event: KeyboardEvent): void {
           v-model="input"
           class="composer__input"
           rows="1"
-          placeholder="描述治理目标，或补充上下文…  Enter 提交，Shift + Enter 换行"
+          placeholder="描述治理目标，或补充上下文…"
           @keydown="onKeydown"
         />
         <div class="composer__toolbar">
@@ -172,6 +172,7 @@ function onKeydown(event: KeyboardEvent): void {
   gap: 16px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
 }
 
 .task-head__title {
@@ -183,8 +184,9 @@ function onKeydown(event: KeyboardEvent): void {
 
 .task-head h2 {
   overflow: hidden;
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -193,8 +195,7 @@ function onKeydown(event: KeyboardEvent): void {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--text-2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .task-head__actions {
@@ -202,6 +203,8 @@ function onKeydown(event: KeyboardEvent): void {
   flex: none;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
 }
 
 .btn.is-on {
@@ -271,12 +274,12 @@ function onKeydown(event: KeyboardEvent): void {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line-strong);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: var(--bg-inset);
 }
 
 .composer__field:focus-within {
-  border-color: rgba(124, 92, 255, 0.5);
+  border-color: var(--accent);
 }
 
 .composer__input {
@@ -285,8 +288,8 @@ function onKeydown(event: KeyboardEvent): void {
   padding: 9px 10px 2px;
   border: 0;
   background: transparent;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.7;
   resize: none;
   field-sizing: content;
 }

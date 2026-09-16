@@ -3,33 +3,36 @@
 :root {
   color-scheme: light dark;
 
-  --bg: light-dark(#fafafb, #0e0f11);
-  --bg-panel: light-dark(#f1f2f4, #131417);
-  --bg-inset: light-dark(#ffffff, #0b0c0e);
-  --bg-elevated: light-dark(rgba(10, 12, 16, 0.022), rgba(255, 255, 255, 0.018));
-  --bg-hover: light-dark(rgba(10, 12, 16, 0.05), rgba(255, 255, 255, 0.04));
-  --bg-active: light-dark(rgba(10, 12, 16, 0.08), rgba(255, 255, 255, 0.075));
-  --line: light-dark(rgba(10, 12, 16, 0.1), rgba(255, 255, 255, 0.07));
-  --line-strong: light-dark(rgba(10, 12, 16, 0.18), rgba(255, 255, 255, 0.14));
+  /* 党政档案配色：米白纸质底、朱红主色、墨色正文 */
+  --bg: light-dark(#f6f3ec, #14110e);
+  --bg-panel: light-dark(#efebe2, #1a1613);
+  --bg-inset: light-dark(#fffdf8, #100d0b);
+  --bg-elevated: light-dark(rgba(48, 34, 22, 0.02), rgba(255, 240, 220, 0.02));
+  --bg-hover: light-dark(rgba(48, 34, 22, 0.06), rgba(255, 240, 220, 0.05));
+  --bg-active: light-dark(rgba(158, 31, 38, 0.1), rgba(201, 80, 90, 0.16));
+  --line: light-dark(rgba(48, 34, 22, 0.14), rgba(255, 240, 220, 0.09));
+  --line-strong: light-dark(rgba(48, 34, 22, 0.28), rgba(255, 240, 220, 0.2));
 
-  --text: light-dark(#1b1d21, #e4e6ea);
-  --text-2: light-dark(#5d636c, #969ba3);
-  --text-3: light-dark(#8b9199, #6b7078);
+  --text: light-dark(#1d1a16, #e8e2d8);
+  /* 全局文字使用统一的正文色；状态色仍用于表达执行状态。 */
+  --text-2: var(--text);
+  --text-3: var(--text);
 
-  --accent: light-dark(#6a49f2, #7c5cff);
-  --accent-soft: light-dark(rgba(106, 73, 242, 0.12), rgba(124, 92, 255, 0.14));
-  --ok: light-dark(#2f9d6c, #5dbd8b);
-  --warn: light-dark(#a9721a, #d8a657);
-  --err: light-dark(#c9503c, #e0705f);
-  --info: light-dark(#3d7fb8, #6ea8dc);
+  --accent: light-dark(#9e1f26, #c9505a);
+  --accent-soft: light-dark(rgba(158, 31, 38, 0.1), rgba(201, 80, 90, 0.16));
+  --ok: light-dark(#2f6b4a, #6bb98d);
+  --warn: light-dark(#8a6418, #d3a44f);
+  --err: light-dark(#a8352c, #de7061);
+  --info: light-dark(#2f5c85, #79aadd);
 
-  --scroll-thumb: light-dark(rgba(10, 12, 16, 0.16), rgba(255, 255, 255, 0.1));
-  --scroll-thumb-hover: light-dark(rgba(10, 12, 16, 0.26), rgba(255, 255, 255, 0.18));
+  --scroll-thumb: light-dark(rgba(48, 34, 22, 0.18), rgba(255, 240, 220, 0.12));
+  --scroll-thumb-hover: light-dark(rgba(48, 34, 22, 0.3), rgba(255, 240, 220, 0.2));
 
-  --radius: 5px;
+  --font-ui: 'Songti SC', SimSun, 'Noto Serif CJK SC', 'Source Han Serif SC', '宋体', serif;
+  --radius: 2px;
   --sidebar-w: 244px;
   --panel-w: 300px;
-  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --mono: var(--font-ui);
 }
 
 /* 主题显式覆盖；未设置 data-theme 时跟随系统 (color-scheme: light dark) */
@@ -53,8 +56,12 @@ body {
   padding: 0;
   color: var(--text);
   background: var(--bg);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+::selection {
+  background: var(--accent-soft);
 }
 
 :where(h1, h2, h3, h4) {
@@ -162,10 +169,12 @@ textarea {
   border-color: transparent;
   background: var(--accent);
   color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: #8d72ff;
+  background: light-dark(#82161c, #b8434d);
   color: #fff;
 }
 
@@ -202,7 +211,7 @@ textarea {
 }
 
 .input:focus {
-  border-color: rgba(124, 92, 255, 0.55);
+  border-color: var(--accent);
   outline: none;
 }
 
@@ -324,42 +333,41 @@ textarea {
 
 .section-label {
   padding: 0 10px;
-  color: var(--text-2);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .nav-item {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: 9px;
+  padding: 6px 10px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--text-2);
-  font-size: 12.5px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
 .nav-item:hover {
   background: var(--bg-hover);
-  color: var(--text);
 }
 
 .nav-item.is-active {
   background: var(--bg-active);
-  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .nav-item__sub {
   overflow: hidden;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: 12.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

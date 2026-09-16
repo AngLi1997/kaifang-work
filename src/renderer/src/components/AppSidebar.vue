@@ -1,15 +1,29 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue'
+import TitleBar from './TitleBar.vue'
 import UserMenu from './UserMenu.vue'
 import { historyTasks, tasks, workspaceFiles } from '../data/mock'
 import type { TaskStatus } from '../data/mock'
 
-defineProps<{ activeTaskId: string; view: 'task' | 'settings' }>()
+type ViewId = 'task' | 'settings' | 'workspace' | 'talent' | 'library'
+
+const menu: {
+  id: 'workspace' | 'talent' | 'library'
+  label: string
+  icon: 'folder' | 'users' | 'library'
+}[] = [
+  { id: 'workspace', label: '工作空间', icon: 'folder' },
+  { id: 'talent', label: '专家 / 技能', icon: 'users' },
+  { id: 'library', label: '资料库', icon: 'library' }
+]
+
+defineProps<{ activeTaskId: string; view: ViewId }>()
 
 const emit = defineEmits<{
   (e: 'select-task', id: string): void
   (e: 'open-settings', section: string): void
   (e: 'new-task'): void
+  (e: 'open-view', view: 'workspace' | 'talent' | 'library'): void
 }>()
 
 const statusText: Record<TaskStatus, string> = {
@@ -31,16 +45,30 @@ const statusTone: Record<TaskStatus, string> = {
 
 <template>
   <aside class="pane pane--side sidebar">
+    <TitleBar />
+
     <div class="sidebar__top">
       <div class="brand">
-        <span class="brand__mark">K</span>
+        <span class="brand__mark">档</span>
         <strong class="brand__name">KaifangWork</strong>
       </div>
 
-      <button class="btn btn--primary sidebar__new" @click="emit('new-task')">
-        <AppIcon name="plus" :size="14" />
-        新任务
-      </button>
+      <nav class="menu">
+        <button class="menu-item" @click="emit('new-task')">
+          <AppIcon name="plus" :size="15" />
+          新建任务
+        </button>
+        <button
+          v-for="item in menu"
+          :key="item.id"
+          class="menu-item"
+          :class="{ 'is-active': view === item.id }"
+          @click="emit('open-view', item.id)"
+        >
+          <AppIcon :name="item.icon" :size="15" />
+          {{ item.label }}
+        </button>
+      </nav>
     </div>
 
     <nav class="scroll sidebar__body">
@@ -98,37 +126,65 @@ const statusTone: Record<TaskStatus, string> = {
 .sidebar__top {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 10px;
+  gap: 12px;
+  padding: 12px 10px 14px;
   border-bottom: 1px solid var(--line);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   padding: 2px;
 }
 
 .brand__mark {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   place-items: center;
-  border-radius: 5px;
-  background: linear-gradient(150deg, #9a83ff, var(--accent));
+  border-radius: var(--radius);
+  background: var(--accent);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .brand__name {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.sidebar__new {
-  justify-content: center;
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.menu-item.is-active {
+  background: var(--bg-active);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .sidebar__body {
@@ -137,6 +193,12 @@ const statusTone: Record<TaskStatus, string> = {
   flex-direction: column;
   gap: 14px;
   padding: 12px 8px;
+}
+
+.sidebar__foot {
+  flex: none;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--line);
 }
 
 .group {

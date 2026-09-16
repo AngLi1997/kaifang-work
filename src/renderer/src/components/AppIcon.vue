@@ -9,6 +9,7 @@ import {
   FileText,
   Folder,
   History,
+  Library,
   Paperclip,
   PanelRight,
   Pause,
@@ -24,6 +25,7 @@ import {
   SquareTerminal,
   TriangleAlert,
   User,
+  Users,
   X,
   type LucideIcon
 } from 'lucide-vue-next'
@@ -38,6 +40,8 @@ const icons = {
   sliders: SlidersHorizontal,
   help: CircleQuestionMark,
   user: User,
+  users: Users,
+  library: Library,
   pause: Pause,
   stop: Square,
   play: Play,

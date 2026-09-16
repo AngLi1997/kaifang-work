@@ -63,6 +63,36 @@ export const workspaces = [
   { id: 'ws-003', name: '照片档案数字化', path: '~/Documents/photo-digitize' }
 ]
 
+export type DirectoryRow = {
+  id: string
+  name: string
+  meta: string
+  icon: 'folder' | 'users' | 'sparkle' | 'library'
+}
+
+export const directory: Record<'workspace' | 'talent' | 'library', DirectoryRow[]> = {
+  workspace: workspaces.map((item) => ({
+    id: item.id,
+    name: item.name,
+    meta: item.path,
+    icon: 'folder' as const
+  })),
+  talent: [
+    { id: 'ex-01', name: '档案著录专家', meta: '著录 · 分类 · 鉴定', icon: 'users' },
+    { id: 'ex-02', name: '密级审核专家', meta: '涉密 · 开放审核', icon: 'users' },
+    { id: 'ex-03', name: '档案编研专家', meta: '专题汇编 · 大事记', icon: 'users' },
+    { id: 'sk-01', name: 'OCR 与版面还原', meta: '技能', icon: 'sparkle' },
+    { id: 'sk-02', name: '元数据抽取与校验', meta: '技能', icon: 'sparkle' },
+    { id: 'sk-03', name: '四性检测', meta: '技能', icon: 'sparkle' }
+  ],
+  library: [
+    { id: 'lib-01', name: '档案著录规则', meta: 'DA/T 18', icon: 'library' },
+    { id: 'lib-02', name: '机关档案管理规定', meta: '国家档案局令第 13 号', icon: 'library' },
+    { id: 'lib-03', name: '本单位案卷目录', meta: '12 846 卷', icon: 'library' },
+    { id: 'lib-04', name: '历年接收批次清册', meta: '96 册', icon: 'library' }
+  ]
+}
+
 export const tasks = reactive<Task[]>([
   {
     id: 'task-2418',
@@ -260,42 +290,6 @@ export const historyTasks = [
   { id: 'task-2409', title: '导入 2023 年接收批次清单', time: '周一' },
   { id: 'task-2401', title: '生成季度治理质量报告', time: '上周' }
 ]
-
-export const steps: { label: string; state: StepState }[] = [
-  { label: '扫描文件清单', state: 'done' },
-  { label: 'OCR 识别文本层', state: 'active' },
-  { label: '抽取元数据', state: 'todo' },
-  { label: '规则校验', state: 'todo' },
-  { label: '生成报告', state: 'todo' }
-]
-
-export const fileStats = [
-  { label: '已处理', value: '96', tone: 'default' },
-  { label: '成功', value: '93', tone: 'ok' },
-  { label: '待复核', value: '3', tone: 'warn' },
-  { label: '失败', value: '0', tone: 'dim' }
-] as const
-
-export const permissions = [
-  { name: 'workspace.read', scope: 'workspace-2024', state: 'allowed' },
-  { name: 'workspace.write', scope: 'output/**', state: 'ask' },
-  { name: 'process', scope: 'ocr-sidecar', state: 'allowed' },
-  { name: 'network', scope: 'model provider', state: 'allowed' },
-  { name: 'external-write', scope: '业务系统', state: 'denied' }
-] as const
-
-export const lastToolCall = {
-  tool: 'archive.ocr',
-  plugin: 'ocr@0.4.2',
-  durationMs: 612430,
-  status: 'running'
-}
-
-export const pendingConfirmation = {
-  taskId: 'task-2418',
-  reason: '覆盖 output/ocr/ 下 5 个同名文件',
-  impact: '5 个文件 / 18.6 MB'
-}
 
 export type SettingItem =
   | { id: string; type: 'switch'; label: string; value: boolean }

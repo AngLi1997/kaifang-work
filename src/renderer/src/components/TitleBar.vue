@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import AppIcon from './AppIcon.vue'
-
-defineProps<{ workspace: string }>()
-
-// 浏览器环境下 window.api 不存在，仅用于静态界面预览
+// 浏览器环境下 window.api 不存在，仅用于静态界面预览。
 const controls = window.api?.windowControls
 const isMac = window.electron?.process?.platform === 'darwin'
 </script>
 
 <template>
   <header class="titlebar" :class="{ 'titlebar--mac': isMac }">
-    <div class="titlebar__lead">
-      <AppIcon name="folder" :size="13" />
-      <span class="titlebar__workspace">{{ workspace }}</span>
+    <div v-if="isMac" class="traffic-lights" aria-label="窗口控制">
+      <button
+        class="traffic-light traffic-light--close"
+        aria-label="关闭窗口"
+        title="关闭"
+        @click="controls?.close()"
+      />
+      <button
+        class="traffic-light traffic-light--minimize"
+        aria-label="最小化窗口"
+        title="最小化"
+        @click="controls?.minimize()"
+      />
+      <button
+        class="traffic-light traffic-light--maximize"
+        aria-label="最大化或还原窗口"
+        title="最大化 / 还原"
+        @click="controls?.toggleMaximize()"
+      />
     </div>
 
-    <div v-if="!isMac" class="titlebar__buttons">
+    <div v-else class="titlebar__buttons">
       <button class="win-btn" title="最小化" @click="controls?.minimize()">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
           <path d="M1 5h8" stroke="currentColor" stroke-width="1.1" />
@@ -46,35 +58,83 @@ const isMac = window.electron?.process?.platform === 'darwin'
 <style scoped>
 .titlebar {
   display: flex;
-  height: 34px;
+  height: 48px;
   flex: none;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-panel);
+  justify-content: flex-end;
+  padding: 0 8px;
+  background: transparent;
   -webkit-app-region: drag;
   user-select: none;
 }
 
 .titlebar--mac {
-  padding-left: 84px;
+  justify-content: flex-start;
+  padding: 0 16px;
 }
 
-.titlebar__lead {
+.traffic-lights {
   display: flex;
-  min-width: 0;
   align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  color: var(--text-3);
+  gap: 8px;
+  -webkit-app-region: no-drag;
 }
 
-.titlebar__workspace {
-  overflow: hidden;
-  color: var(--text-2);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.traffic-light {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.traffic-light::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 1px;
+  border-radius: 1px;
+  background: rgba(45, 45, 45, 0.72);
+  content: '';
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.traffic-light:hover::after {
+  opacity: 1;
+}
+
+.traffic-light--close {
+  background: #ff5f57;
+}
+
+.traffic-light--close::after {
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 0 0.5px rgba(45, 45, 45, 0.72);
+}
+
+.traffic-light--minimize {
+  background: #febc2e;
+}
+
+.traffic-light--minimize::after {
+  transform: translate(-50%, -50%);
+}
+
+.traffic-light--maximize {
+  background: #28c840;
+}
+
+.traffic-light--maximize::after {
+  width: 5px;
+  height: 5px;
+  border: 1px solid rgba(45, 45, 45, 0.72);
+  background: transparent;
+  transform: translate(-50%, -50%);
 }
 
 .titlebar__buttons {
@@ -85,17 +145,16 @@ const isMac = window.electron?.process?.platform === 'darwin'
 
 .win-btn {
   display: grid;
-  width: 44px;
+  width: 36px;
   place-items: center;
   border: 0;
   background: transparent;
-  color: var(--text-2);
+  color: var(--text);
   cursor: pointer;
 }
 
 .win-btn:hover {
   background: var(--bg-hover);
-  color: var(--text);
 }
 
 .win-btn--close:hover {
