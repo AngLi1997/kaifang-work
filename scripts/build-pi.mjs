@@ -46,6 +46,8 @@ execFileSync(
     '--bundle',
     '--platform=node',
     '--format=esm',
+    // Ignore Pi's workspace path aliases so esbuild uses generated dist files.
+    '--tsconfig-raw={"compilerOptions":{}}',
     '--banner:js=import { createRequire as __kaifangCreateRequire } from "node:module"; const require = __kaifangCreateRequire(import.meta.url);',
     '--external:cross-spawn',
     '--external:proper-lockfile',
