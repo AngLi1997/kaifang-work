@@ -57,10 +57,7 @@ export class ModelConfigStore {
     }
 
     if (input.apiKey !== undefined && input.apiKey.trim()) {
-      if (!safeStorage.isEncryptionAvailable()) {
-        throw new Error('系统安全存储不可用，无法保存 API Key')
-      }
-      next.apiKeys[provider] = safeStorage.encryptString(input.apiKey.trim()).toString('base64')
+      next.apiKeys[provider] = await this.encryptApiKey(input.apiKey.trim())
     }
 
     await this.persist(next)
@@ -105,7 +102,7 @@ export class ModelConfigStore {
       inputContextLength: normalized.inputContextLength,
       outputContextLength: normalized.outputContextLength,
       encryptedApiKey: normalized.apiKey
-        ? this.encryptApiKey(normalized.apiKey)
+        ? await this.encryptApiKey(normalized.apiKey)
         : (existing?.encryptedApiKey ?? '')
     }
 
@@ -146,10 +143,12 @@ export class ModelConfigStore {
 
   async getRuntimeCustomModels(): Promise<RuntimeCustomModel[]> {
     const config = await this.load()
-    return config.customModels.map((model) => ({
-      ...this.toPublicCustomModel(model),
-      apiKey: model.encryptedApiKey ? this.decryptApiKey(model.encryptedApiKey) : ''
-    }))
+    return Promise.all(
+      config.customModels.map(async (model) => ({
+        ...this.toPublicCustomModel(model),
+        apiKey: model.encryptedApiKey ? await this.decryptApiKey(model.encryptedApiKey) : ''
+      }))
+    )
   }
 
   getProviderEnv(provider: string): string | undefined {
@@ -246,18 +245,19 @@ export class ModelConfigStore {
     }
   }
 
-  private encryptApiKey(apiKey: string): string {
-    if (!safeStorage.isEncryptionAvailable()) {
+  private async encryptApiKey(apiKey: string): Promise<string> {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
       throw new Error('系统安全存储不可用，无法保存 API Key')
     }
-    return safeStorage.encryptString(apiKey).toString('base64')
+    return (await safeStorage.encryptStringAsync(apiKey)).toString('base64')
   }
 
-  private decryptApiKey(encrypted: string): string {
-    if (!safeStorage.isEncryptionAvailable()) {
+  private async decryptApiKey(encrypted: string): Promise<string> {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
       throw new Error('系统安全存储不可用，无法读取 API Key')
     }
-    return safeStorage.decryptString(Buffer.from(encrypted, 'base64'))
+    const result = await safeStorage.decryptStringAsync(Buffer.from(encrypted, 'base64'))
+    return result.result
   }
 
   private toPublic(config: StoredModelConfig): ModelConfig {
