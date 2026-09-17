@@ -258,8 +258,13 @@ const toolText = {
 }
 
 .block--user p {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-selected);
   font-size: 13.5px;
   color: var(--text);
+  line-height: 1.7;
 }
 
 .text-body {

@@ -409,6 +409,10 @@ async function addWorkspace(): Promise<void> {
   }
 }
 
+function createDirectoryItem(kind: DirectoryKind): void {
+  if (kind === 'workspace') void addWorkspace()
+}
+
 function buildAgentPrompt(text: string, workspaceId: string): string {
   const references = workspaceFiles
     .filter((file) => file.workspaceId === workspaceId && file.kind === 'file')
@@ -691,6 +695,7 @@ function selectModel(value: string): void {
         :rows="directory[view]"
         :active-workspace-id="currentWorkspaceId"
         @select-workspace="selectWorkspace"
+        @create="createDirectoryItem"
       />
 
       <aside v-if="asideShown" class="pane pane--aside" />

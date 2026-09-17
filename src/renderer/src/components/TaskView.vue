@@ -33,8 +33,12 @@ const emit = defineEmits<{
 const input = ref(props.draftInput)
 const composer = ref<HTMLTextAreaElement | null>(null)
 const stream = ref<HTMLElement | null>(null)
+const streamContent = ref<HTMLElement | null>(null)
 const autoScrollEnabled = ref(true)
+const isComposing = ref(false)
+const isProgrammaticScroll = ref(false)
 let scrollFrame: number | null = null
+let resizeObserver: ResizeObserver | null = null
 
 const modes = ['Agent 执行', '对话', '只读分析']
 
@@ -106,11 +110,19 @@ function scheduleScrollToBottom(): void {
   scrollFrame = requestAnimationFrame(() => {
     scrollFrame = null
     const element = stream.value
-    if (element && autoScrollEnabled.value) element.scrollTop = element.scrollHeight
+    if (!element || !autoScrollEnabled.value) return
+    isProgrammaticScroll.value = true
+    element.scrollTop = element.scrollHeight
+    requestAnimationFrame(() => {
+      if (stream.value && autoScrollEnabled.value)
+        stream.value.scrollTop = stream.value.scrollHeight
+      isProgrammaticScroll.value = false
+    })
   })
 }
 
 function handleStreamScroll(): void {
+  if (isProgrammaticScroll.value) return
   const element = stream.value
   if (!element) return
   autoScrollEnabled.value = isAtBottom(element)
@@ -158,7 +170,23 @@ function submit(): void {
   input.value = ''
 }
 
+function handleInput(event: Event): void {
+  const value = (event.target as HTMLTextAreaElement).value
+  if (isComposing.value || (event instanceof InputEvent && event.isComposing)) return
+  updateInput(value)
+}
+
+function handleCompositionStart(): void {
+  isComposing.value = true
+}
+
+function handleCompositionEnd(event: CompositionEvent): void {
+  isComposing.value = false
+  updateInput((event.target as HTMLTextAreaElement).value)
+}
+
 function onKeydown(event: KeyboardEvent): void {
+  if (isComposing.value || event.isComposing || event.keyCode === 229) return
   if (event.key === 'Enter' && !event.shiftKey && showMentionPicker.value) {
     event.preventDefault()
     insertMention(mentionOptions.value[0])
@@ -187,8 +215,14 @@ watch(
 
 onMounted(() => scheduleScrollToBottom())
 
+onMounted(() => {
+  resizeObserver = new ResizeObserver(() => scheduleScrollToBottom())
+  if (streamContent.value) resizeObserver.observe(streamContent.value)
+})
+
 onBeforeUnmount(() => {
   if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
+  resizeObserver?.disconnect()
 })
 </script>
 
@@ -233,22 +267,24 @@ onBeforeUnmount(() => {
     </header>
 
     <div ref="stream" class="scroll stream selectable" @scroll="handleStreamScroll">
-      <div v-if="isEmptyTask" class="workspace-welcome">
-        <h1 class="workspace-welcome__logo">KaifangWork</h1>
-        <div class="workspace-welcome__tools">
-          <button
-            v-for="tool in quickTools"
-            :key="tool.label"
-            type="button"
-            class="workspace-tool"
-            @click="selectQuickTool(tool)"
-          >
-            <AppIcon :name="tool.icon" :size="14" />
-            {{ tool.label }}
-          </button>
+      <div ref="streamContent" class="stream__content">
+        <div v-if="isEmptyTask" class="workspace-welcome">
+          <h1 class="workspace-welcome__logo">KaifangWork</h1>
+          <div class="workspace-welcome__tools">
+            <button
+              v-for="tool in quickTools"
+              :key="tool.label"
+              type="button"
+              class="workspace-tool"
+              @click="selectQuickTool(tool)"
+            >
+              <AppIcon :name="tool.icon" :size="14" />
+              {{ tool.label }}
+            </button>
+          </div>
         </div>
+        <TaskEventBlock v-for="block in task?.blocks ?? []" :key="block.id" :block="block" />
       </div>
-      <TaskEventBlock v-for="block in task?.blocks ?? []" :key="block.id" :block="block" />
       <button
         v-if="!autoScrollEnabled"
         type="button"
@@ -264,11 +300,18 @@ onBeforeUnmount(() => {
       <div class="composer__field">
         <textarea
           ref="composer"
-          v-model="input"
+          :value="input"
           class="composer__input"
           rows="1"
           placeholder="描述治理目标，或补充上下文…"
-          @input="updateInput(input)"
+          lang="zh-CN"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          @input="handleInput"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
           @keydown="onKeydown"
         />
         <div v-if="showMentionPicker" class="composer__mentions">
@@ -374,7 +417,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 12px 120px 12px 16px;
   border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }
@@ -415,20 +458,44 @@ onBeforeUnmount(() => {
   user-select: text;
 }
 
+.stream__content {
+  display: flex;
+  width: min(100%, 1280px);
+  max-width: 1280px;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.stream__content > .block {
+  width: min(100%, 920px);
+  align-self: flex-start;
+}
+
+.stream__content > .block--user {
+  width: min(78%, 720px);
+  align-self: flex-end;
+}
+
 .pane--main.is-empty {
   position: relative;
 }
 
 .pane--main.is-empty .stream {
   align-items: center;
-  justify-content: flex-end;
-  padding-bottom: clamp(150px, 18vh, 224px);
+  justify-content: flex-start;
+}
+
+.pane--main.is-empty .stream__content {
+  height: 100%;
+  min-height: 0;
+  padding-top: clamp(180px, 27vh, 320px);
 }
 
 .workspace-welcome {
   display: flex;
   width: min(100%, 820px);
   flex-direction: column;
+  align-self: center;
   align-items: center;
   gap: 18px;
   padding: 0 16px;
@@ -490,7 +557,7 @@ onBeforeUnmount(() => {
 .pane--main.is-empty .composer {
   position: absolute;
   right: 16px;
-  bottom: clamp(24px, 5vh, 56px);
+  bottom: clamp(180px, 28vh, 340px);
   left: 16px;
   z-index: 1;
   width: min(calc(100% - 32px), 980px);

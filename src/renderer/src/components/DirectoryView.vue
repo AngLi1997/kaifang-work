@@ -85,7 +85,7 @@ function selectRow(row: DirectoryRow): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 22px;
+  padding: 12px 120px 12px 22px;
   border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }

@@ -58,6 +58,11 @@ const isMac = window.electron?.process?.platform === 'darwin'
 <style scoped>
 .titlebar {
   display: flex;
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  right: 0;
+  left: 0;
   height: 48px;
   flex: none;
   align-items: center;

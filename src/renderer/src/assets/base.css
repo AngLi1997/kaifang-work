@@ -48,7 +48,9 @@ body {
   color: var(--color-text);
   background: var(--color-background);
   line-height: 1.6;
-  font-family: 'Songti SC', SimSun, 'Noto Serif CJK SC', 'Source Han Serif SC', '宋体', serif;
+  font-family:
+    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', SimSun,
+    'Microsoft YaHei UI', 'Microsoft YaHei', '宋体', serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

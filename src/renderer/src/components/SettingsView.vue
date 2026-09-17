@@ -145,7 +145,7 @@ function toggle(item: SettingItem): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 12px 120px 12px 18px;
   border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }

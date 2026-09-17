@@ -311,7 +311,7 @@ watch(taskMenu, (value) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 6px 10px 8px;
+  padding: 54px 10px 8px;
   border-bottom: 1px solid var(--line);
 }
 
