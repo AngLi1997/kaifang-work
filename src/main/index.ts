@@ -1,4 +1,4 @@
-import { app, dialog, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, dialog, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { readdir, stat } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -7,6 +7,19 @@ import type { AgentStartInput, SaveCustomModelInput, SaveModelConfigInput } from
 import type { WorkspaceFileEntry, WorkspaceSelection } from '../shared/workspace'
 import { AppStateStore } from './app-state-store'
 import { AgentService } from './agent-service'
+
+// WSLg 的 XWayland 不桥接输入法，中文只能经 Wayland 的 text-input 协议输入，
+// 因此这里显式切到原生 Wayland 并打开 Wayland IME。WSLg 没有 DRM 渲染节点，
+// 默认的独立 GPU 进程起不来会让窗口只有阴影不绘制，所以把 GPU 放进主进程。
+const isWslg =
+  process.platform === 'linux' &&
+  Boolean(process.env.WAYLAND_DISPLAY) &&
+  (process.env.XDG_RUNTIME_DIR ?? '').startsWith('/mnt/wslg')
+if (isWslg) {
+  app.commandLine.appendSwitch('ozone-platform', 'wayland')
+  app.commandLine.appendSwitch('enable-wayland-ime')
+  app.commandLine.appendSwitch('in-process-gpu')
+}
 
 const agentService = new AgentService()
 const appStateStore = new AppStateStore()
@@ -240,23 +253,29 @@ function assertSaveCustomModelInput(input: SaveCustomModelInput): void {
   if (
     typeof input.supportsTools !== 'boolean' ||
     typeof input.supportsImages !== 'boolean' ||
-    typeof input.inputContextLength !== 'number' ||
-    typeof input.outputContextLength !== 'number'
+    (input.inputContextLength !== undefined && typeof input.inputContextLength !== 'number') ||
+    (input.outputContextLength !== undefined && typeof input.outputContextLength !== 'number')
   ) {
     throw new Error('模型配置字段无效')
   }
 }
 
 function createWindow(): void {
+  const { width: workAreaWidth, height: workAreaHeight } = screen.getPrimaryDisplay().workAreaSize
+  const width = Math.min(1920, Math.max(1180, Math.floor(workAreaWidth * 0.8)))
+  const height = Math.min(1120, Math.max(760, Math.floor(workAreaHeight * 0.8)))
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1180,
-    height: 760,
+    width,
+    height,
     minWidth: 760,
     minHeight: 560,
+    center: true,
     show: false,
     autoHideMenuBar: true,
     frame: false,
+    backgroundColor: '#f6f3ec',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -264,9 +283,27 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-  })
+  const revealWindow = (): void => {
+    if (mainWindow.isDestroyed()) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    if (!mainWindow.isVisible()) mainWindow.show()
+    mainWindow.focus()
+  }
+
+  mainWindow.once('ready-to-show', revealWindow)
+  mainWindow.webContents.once('did-finish-load', revealWindow)
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      if (!isMainFrame) return
+      console.error(`渲染页面加载失败 (${errorCode}): ${errorDescription}，地址：${validatedURL}`)
+      revealWindow()
+    }
+  )
+  // Windows 上 ready-to-show 与 did-finish-load 都可能不触发，留一次性兜底，只补显示不抢焦点。
+  setTimeout(() => {
+    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show()
+  }, 3000)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
